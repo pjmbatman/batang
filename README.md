@@ -9,8 +9,9 @@
 
 <p align="center">
   <b>The foundation for every battery experiment, model and insight.</b><br>
-  <i>Batang</i> (바탕) means foundation in Korean. Public battery ageing and fault data, standardized into one schema:
-  a web hub, an MCP server for AI assistants, a Python package, and the files.
+  <i>Batang</i> (바탕) means foundation in Korean. An open hub for battery research: public cycling and fault data
+  standardized into one schema, physics-based cell simulation and AI modeling, from the web, Python, HTTP or an AI
+  assistant.
 </p>
 
 <p align="center">
@@ -32,9 +33,10 @@
 
 ## What Batang is
 
+Batang brings the three things battery research keeps rebuilding into one place: the data, simulation and AI models.
 Public battery ageing datasets come in dozens of formats, with different units, current signs, cycle definitions and
-capacity references. Batang converts each dataset **cell by cell** into one documented schema and offers it in three
-ways:
+capacity references; Batang converts each dataset **cell by cell** into one documented schema, and on top of it lets
+you simulate cells with physics-based models and build, train and evaluate AI models, all in the browser:
 
 | | |
 |---|---|
@@ -42,6 +44,7 @@ ways:
 | | cell store: 43 public datasets · 3,400 cells (Li-ion, Na-ion, Zn-ion) · 10.0 M cycles · 17.0 G samples, at the source's own time resolution, with per-sample quality flags |
 | | device store: 11 datasets of packs, storage systems, vehicles and fault tests · 1,513 devices and 31,449 charging sessions · 436 k segments · 336 M samples, with fault labels (normal / faulty / unknown) |
 | **Hub** | the Batang web site: an overview dashboard, datasets to explore and filter, cell and device pages with cycle summaries and raw voltage / current / temperature, cell comparison, the data model, release notes |
+| **Virtual Lab** | in the hub: **simulation** with PyBaMM (SPM, SPMe, DFN; cell parameter sets, experiment protocols built from steps, voltage and internal state variables) and **AI modeling** (pick records and preprocess them, build a model from blocks, train it on a GPU and watch it learn, evaluate a checkpoint on other data; the choices become PyTorch and NumPy code you can download) |
 | **AI assistants** | a remote MCP server: an assistant such as Claude searches, aggregates and reads the data for you, read-only |
 | **Data** | the standardized files themselves (Apache Parquet), for your own analysis or model training |
 
@@ -184,7 +187,7 @@ If you use Batang, please cite it **and the original datasets you use** (see [DA
 ```bibtex
 @misc{park2026batang,
   author = {Park, Jimin},
-  title  = {{Batang}: Standardized Public Lithium-Ion Battery Ageing Data},
+  title  = {{Batang}: An Open Hub for Battery Data, Simulation and {AI} Modeling},
   year   = {2026},
   url    = {https://batang.yonsei.ac.kr},
   note   = {Release 2.0}
