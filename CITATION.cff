@@ -2,13 +2,17 @@ cff-version: 1.2.0
 message: >-
   If you use Batang, please cite it as below, and also cite the original
   datasets you use (see DATASETS.md).
-title: "Batang: standardized public lithium-ion battery ageing data"
+title: "Batang: an open hub for battery data, simulation and AI modeling"
 abstract: >-
-  Batang (바탕, "foundation" in Korean) standardizes public battery
-  ageing datasets cell by cell into one Parquet schema with unified units,
-  cycle segmentation, cycle kinds and a single SOH definition, and offers them
-  as a database, a web explorer and downloadable files.
-type: dataset
+  Batang (바탕, "foundation" in Korean): the foundation for every battery
+  experiment, model and insight. An open hub for battery research that
+  standardizes public cycling and fault datasets record by record into one
+  Parquet schema (unified units, cycle segmentation, cycle kinds, a single SOH
+  definition), and builds on it physics-based cell simulation (PyBaMM) and AI
+  modeling (data preprocessing, block-built models, GPU training and
+  evaluation), offered through a web hub, a Python package, an HTTP API and a
+  remote MCP server.
+type: software
 authors:
   - family-names: Park
     given-names: Jimin
@@ -23,3 +27,5 @@ keywords:
   - battery degradation
   - state of health
   - dataset standardization
+  - battery simulation
+  - machine learning
