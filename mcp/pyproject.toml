@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "batang-mcp"
+version = "0.3.0"
+description = "Local MCP bridge to the Batang remote MCP server (standardized battery ageing and fault data)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Jimin Park", email = "pjm@yonsei.ac.kr" }]
+dependencies = ["mcp>=2.3,<3", "anyio>=4"]
+
+[project.urls]
+Homepage = "https://github.com/pjmbatman/batang"
+
+[project.scripts]
+batang-mcp = "batang_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/batang_mcp"]

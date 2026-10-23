@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: >-
+  If you use Batang, please cite it as below, and also cite the original
+  datasets you use (see DATASETS.md).
+title: "Batang: standardized public lithium-ion battery ageing data"
+abstract: >-
+  Batang (바탕, "foundation" in Korean) standardizes public battery
+  ageing datasets cell by cell into one Parquet schema with unified units,
+  cycle segmentation, cycle kinds and a single SOH definition, and offers them
+  as a database, a web explorer and downloadable files.
+type: dataset
+authors:
+  - family-names: Park
+    given-names: Jimin
+    affiliation: "Department of Battery Conflation Engineering, Yonsei University"
+    email: pjm@yonsei.ac.kr
+url: "https://batang.yonsei.ac.kr"
+repository: "https://github.com/pjmbatman/batang"
+version: "2.0"
+date-released: "2026-10-23"
+keywords:
+  - lithium-ion battery
+  - battery degradation
+  - state of health
+  - dataset standardization

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "batang"
+version = "0.2.0"
+description = "Python client for Batang: find, read and download standardized battery ageing and fault data"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Jimin Park", email = "pjm@yonsei.ac.kr" }]
+dependencies = ["numpy>=1.23", "pandas>=1.5", "pyarrow>=12"]
+
+[project.optional-dependencies]
+sql = ["duckdb>=1.0"]
+torch = ["torch>=2.0"]
+hdf5 = ["h5py>=3.8"]
+all = ["duckdb>=1.0", "torch>=2.0", "h5py>=3.8"]
+
+[project.urls]
+Homepage = "https://github.com/pjmbatman/batang"
+
+[project.scripts]
+batang = "batang.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/batang"]

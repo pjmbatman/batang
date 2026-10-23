@@ -1,0 +1,8 @@
+The documentation in this repository (README.md, DATASETS.md, DATA_FORMAT.md, CHANGELOG.md and docs/) is
+licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/
+
+This license does not cover the battery data. The standardized data offered by Batang remains under the license
+of each original dataset, listed in DATASETS.md.
+
+Copyright (c) 2026 Jimin Park, Yonsei University
