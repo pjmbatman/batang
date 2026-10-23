@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="MPMC Battery logo" width="160">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/batang-mark-dark.svg">
+    <img src="docs/assets/batang-mark.svg" alt="Batang logo" width="96">
+  </picture>
 </p>
 
 <h1 align="center">Batang</h1>
@@ -17,7 +20,8 @@
   <a href="DATASETS.md">Datasets</a> ·
   <a href="DATA_FORMAT.md">Data format</a> ·
   <a href="#citation">Citation</a> ·
-  <a href="#license">License</a>
+  <a href="#license">License</a> ·
+  <a href="#acknowledgements">Acknowledgements</a>
 </p>
 
 > **Access:** sign in with a Yonsei University Google account (`@yonsei.ac.kr`). Other researchers can apply on the
@@ -199,6 +203,22 @@ If you use Batang, please cite it **and the original datasets you use** (see [DA
 - TURKU (CC BY-NC 3.0) and TUDA_LFP_FIELD (CC BY-NC 4.0) are non-commercial; MCMASTER_30T, MCMASTER_A123 (CC BY-SA
   4.0), OXFORD_DEG1, OXFORD_ENERGY_TRADING and OXFORD_PATH (ODbL) are share-alike.
 - **This documentation**: [CC BY 4.0](LICENSE). The MCP bridge in [`mcp/`](mcp): MIT.
+
+## Acknowledgements
+
+<p>
+  <a href="https://www.mpmc.yonsei.ac.kr/"><img src="docs/assets/mpmc-lab-logo.png" alt="MPMC Battery logo" width="120" align="right"></a>
+</p>
+
+The servers that run Batang for its users (the virtual machines, CPU and GPU behind the web hub, the query API and
+the Virtual Lab) are provided by the [Multi-Physics Modeling & Computation Lab (MPMC)](https://www.mpmc.yonsei.ac.kr/),
+Yonsei University, led by Prof. Jung-Il Choi. I thank Prof. Choi and the MPMC lab for supporting the operation of
+this platform.
+
+Batang is developed and maintained by Jimin Park, who holds its copyright; the licenses are listed
+[above](#license).
+
+<br clear="right">
 
 ## Contact
 
