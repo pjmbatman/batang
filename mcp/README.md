@@ -1,7 +1,7 @@
 # batang-mcp
 
 Local MCP bridge to [Batang](https://github.com/pjmbatman/batang), the standardized battery ageing and fault
-database of Yonsei University.
+database.
 
 The tools live on the Batang server (`https://batang.yonsei.ac.kr/mcp`). This program connects to it with your
 Batang token and offers exactly the server's tools and instructions to your assistant over stdio, so it always
