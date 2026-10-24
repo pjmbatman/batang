@@ -34,7 +34,7 @@ MCP_URL = os.environ.get("BATANG_MCP_URL", "https://batang.yonsei.ac.kr/mcp").rs
 TOKEN_FILE = os.path.join(os.path.expanduser("~"), ".config", "batang", "token")
 CLIENT_NAME = "Batang MCP (로컬 브리지)"
 
-BASE_INSTRUCTIONS = """Batang local bridge: the tools of the Batang remote MCP server (Yonsei University battery
+BASE_INSTRUCTIONS = """Batang local bridge: the tools of the Batang remote MCP server (battery
 database: ageing and fault data in one schema), read-only. If only login, whoami and save_link are listed, call
 login() first: it prints a link and a code to approve in the browser, then the Batang tools appear. When an answer
 contains a link (/mcp/results/... or /mcp/files/...), save_link(url, path) downloads it to this computer."""
