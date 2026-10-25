@@ -3,17 +3,20 @@
 The standardized data is a folder of [Apache Parquet](https://parquet.apache.org) files plus a few JSON files. Any
 Parquet reader works: pandas, pyarrow, polars, DuckDB, R arrow, MATLAB `parquetread`. No Batang software is needed.
 
-This page is the schema manual of **release 2.0** (schema 2.0.0). One release covers both stores:
+This page is the schema manual of **release 2.0** (schema 2.1.0). One release covers three stores:
 
 - the **cell store** (`cells/`): lab cells cycled for ageing;
 - the **device store** (`devices/`): modules, packs, storage systems, vehicles and every fault test, including fault
-  tests on single cells. In releases before 2.0 it was called the unit store.
+  tests on single cells. In releases before 2.0 it was called the unit store;
+- the **parameter-set store** (`parameter_sets/`): cell parameter sets for physics-based models (PyBaMM DFN, SPMe,
+  SPM). Added on 2026-10-26 with schema 2.1.0; the cell and device stores did not change.
 
 Schema 2.0 renamed columns, files and folders; no value changed. [Changes from 1.x](#changes-from-1x) at the end
 of this page lists what moved; every release is listed in [CHANGELOG.md](CHANGELOG.md).
 
 Contents: [Layout](#layout) · [Naming rules](#naming-rules) · [Common rules](#common-rules) ·
 [Shared catalog core](#shared-catalog-core) · [Cell store](#cell-store) · [Device store](#device-store) ·
+[Parameter-set store](#parameter-set-store) ·
 [Server views (SQL)](#server-views-sql) · [Licenses in the data](#licenses-in-the-data) ·
 [Changes from 1.x](#changes-from-1x)
 
@@ -21,7 +24,7 @@ Contents: [Layout](#layout) · [Naming rules](#naming-rules) · [Common rules](#
 
 ```
 releases/2.0/
-  manifest.json                  release, schema version, the two stores and their totals
+  manifest.json                  release, schema version, the stores and their totals
   cells/
     manifest.json                format and schema versions, columns, dtypes and units, license per dataset,
                                  per-file sizes and SHA-256
@@ -46,6 +49,16 @@ releases/2.0/
       aux.parquet                optional, same rows as samples: other measured quantities (pressure, gas, strain ...)
       segments.parquet           one row per segment
       meta.json                  configuration, channel map, labels, notes on the raw data, source files
+  parameter_sets/
+    manifest.json                format, schema version, sets and their files
+    catalog.parquet              one row per parameter set
+    index.json                   what a simulation lists: per set its catalog fields, model options and hints
+    <PROVIDER>/<set_id>/
+      parameters.json            the set as PyBaMM ParameterValues JSON (ParameterValues.from_json)
+      meta.json                  the catalog fields, where each value came from, model options
+      preview.json               scalar values and the functions sampled over their range
+      checks.json                SPM, SPMe and DFN discharges solved when the set was stored
+      source/                    the as-published file (BPX, tables), when its licence allows
 ```
 
 Every dataset and record folder is self-contained, so you can request and use only the datasets or records you
@@ -494,6 +507,64 @@ cv  = pd.read_parquet(f"{root}/TUDA_LFP_FIELD/TUDA_LFP_FIELD_SYS01/cell_voltages
 
 devices = dev[dev.record_type == "device"]                              # count devices and sessions apart
 faulty  = seg[seg.fault_active == 1]                                    # segments inside a known fault
+```
+
+# Parameter-set store
+
+A parameter set is what a physics-based cell model needs to stand for one cell: geometry, material properties,
+open-circuit potentials, kinetics, transport, electrolyte and voltage limits. Every set is stored as PyBaMM
+ParameterValues JSON: functions are expression trees and tables are interpolants, so the file holds no code and loads
+with `pybamm.ParameterValues.from_json`. Sets published in BPX (Battery Parameter eXchange) also keep their BPX file in
+`source/` when the licence allows.
+
+A set is included only when PyBaMM's DFN runs with it **as that cell**: every value the isothermal DFN reads comes
+from the set's source (a file, a paper's tables, supplementary information or figures) or is derived from what the
+source gives (capacity balance, composition, OCV balancing); no value is taken from another cell. Values with a
+standard default may be defaulted, and are marked: Bruggeman exponent 1.5, thermodynamic factor 1, OCP entropic change
+0, reference temperature. When the set was stored, its SPM, SPMe and DFN discharges at 1C and C/20 were solved
+(`checks.json`); `models` lists the models that solved. The sets are listed in [DATASETS.md](DATASETS.md#parameter-sets).
+
+## `parameter_sets/catalog.parquet`
+
+| Column | Type | Meaning |
+|---|---|---|
+| `set_id` | string | the set, in PyBaMM's style: author + year (+ the cell when one paper has several). PyBaMM's own sets keep their PyBaMM names |
+| `dataset` | string | the provider (`PYBAMM`, `ABOUT_ENERGY`, `DLR`, ...) |
+| `title` | string | a short display name |
+| `cell_model`, `manufacturer` | string | the cell, spelled as in the cell store so a set links to measured data of the same cell; empty for a lab or unnamed cell |
+| `cathode`, `anode`, `electrolyte`, `cathode_family`, `chemistry_family` | string | chemistry; `chemistry_family` is Li-ion, Na-ion or K-ion |
+| `form_factor`, `size_code` | string | shape and size, as in the cell store |
+| `rated_capacity_ah`, `voltage_min_v`, `voltage_max_v` | float64 | the set's nominal capacity and voltage cut-offs |
+| `origin` | string | `measured` (teardown and cell measurements), `fitted` (fitted to cell data), `literature` (assembled from published values), `fictitious` (a demonstration or design cell) |
+| `source_format` | string | `pybamm_builtin`, `pybamm`, `bpx`, `battmo`, `mpet`, `matlab`, `julia`, `paper` |
+| `is_bpx_source` | bool | the source is a BPX file |
+| `variant_of` | string | the set this one re-fits or modifies |
+| `has_thermal`, `has_sei`, `has_plating`, `has_particle_phases`, `has_msmr` | bool | what the set can be solved with: the lumped thermal model, SEI growth, lithium plating; two particle phases in an electrode; MSMR thermodynamics |
+| `n_parameters`, `n_derived`, `n_defaulted` | int32 | values in the set; of them, derived from the source and set to a standard default |
+| `dfn_capacity_ratio` | float64 | DFN C/20 discharge capacity / nominal capacity when the set was stored |
+| `models` | list<string> | the models (SPM, SPMe, DFN) whose every stored check solved |
+| `related_datasets` | list<string> | cell-store datasets that measured the same cell model |
+| `citation`, `doi`, `url` | string | the source to cite |
+| `license`, `commercial_use` | string | as in the other stores |
+| `pybamm_version`, `notes` | string | the PyBaMM the set was stored with; valid ranges and other notes |
+| `path` | string | the set's folder, `<PROVIDER>/<set_id>/` |
+
+## `meta.json` (parameter sets)
+
+The catalog fields, plus `parameters`: for each PyBaMM parameter name, `from` (`source`, `derived` or `default`),
+`where` (the table, figure or file path the value came from) and `note` (how a derived value was obtained);
+`pybamm_options` (the model options the set needs: particle phases, OCP hysteresis, MSMR, contact resistance);
+`source_files`.
+
+## Reading (parameter sets)
+
+```python
+import json, pybamm
+meta = json.load(open("meta.json"))
+pv = pybamm.ParameterValues.from_json(json.load(open("parameters.json")))
+model = pybamm.lithium_ion.DFN(options=meta["pybamm_options"])
+sim = pybamm.Simulation(model, parameter_values=pv, experiment=pybamm.Experiment(["Discharge at 1C until 2.5 V"]))
+sim.solve()
 ```
 
 # Server views (SQL)

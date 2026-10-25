@@ -3,6 +3,14 @@
 Releases of the standardized data. Each release is a complete, versioned copy of the store. From 2.0 one release
 number covers both stores.
 
+## 2.0 + parameter sets (2026-10-26, schema 2.1.0)
+
+- **Parameter-set store** `releases/2.0/parameter_sets/`, a third store next to cells and devices: 43 cell parameter
+  sets for PyBaMM's DFN, SPMe and SPM, stored as ParameterValues JSON with the source of every value, the BPX file when
+  the set was published as BPX, and the DFN / SPMe / SPM discharges solved when the set was stored
+  ([DATA_FORMAT.md](DATA_FORMAT.md#parameter-set-store), list in [DATASETS.md](DATASETS.md#parameter-sets)).
+- The cell and device stores are unchanged.
+
 ## 2.0 (2026-10-23)
 
 - **Schema 2.0.0**, for the cell store and the device store: every column, file and folder name follows one set of

@@ -1,8 +1,8 @@
 # Datasets
 
-Batang release 2.0 (schema 2.0.0) has two stores: the cell store, 43 public life-cycling datasets with 3,400 cells,
-and the [device store](#device-store-packs-systems-vehicles-fault-tests) of packs, storage systems, vehicles and fault
-tests. Every record was converted and checked one by one; what was found and how it was handled (unit errors,
+Batang release 2.0 (schema 2.1.0) has three stores: the cell store, 43 public life-cycling datasets with 3,400 cells,
+the [device store](#device-store-packs-systems-vehicles-fault-tests) of packs, storage systems, vehicles and fault
+tests, and the [parameter-set store](#parameter-sets) of 43 cell parameter sets for physics-based models. Every record was converted and checked one by one; what was found and how it was handled (unit errors,
 interleaved records, sensor faults, how the reference test was chosen) is recorded in each record's notes, shown on
 its page on the site and stored in its `meta.json`. The file format is [DATA_FORMAT.md](DATA_FORMAT.md).
 
@@ -123,6 +123,64 @@ the source does not identify. A record is one battery with its own record of ope
 
 Vehicles that both Zhang et al. and EVBattery released are one device each, listed under the release its samples come
 from, with the other release's id in `aliases` (see [CHANGELOG.md](CHANGELOG.md)).
+
+## Parameter sets
+
+The parameter-set store ([DATA_FORMAT.md](DATA_FORMAT.md#parameter-set-store)) holds 43 cell parameter sets for
+PyBaMM's DFN, SPMe and SPM: PyBaMM's own full-cell sets, sets published as BPX or as solver input files, and sets
+transcribed from papers' tables, supplementary information and figures. A set is included only when the DFN runs with
+it as that cell from what its source gives; derived and defaulted values are marked per value in its `meta.json`.
+Cite the source given for each set. "Values": how the source obtained them; "Source format": what was converted.
+
+| Set | Provider | Cell | Values | Source format | Cite | License | Commercial use |
+|---|---|---|---|---|---|---|---|
+| `Ai2020` | PYBAMM | Enertech pouch, LCO / graphite, pouch, 2.28 Ah | measured | PyBaMM built-in | Ai et al. 2019 [10.1149/2.0122001JES](https://doi.org/10.1149/2.0122001JES) | BSD-3-Clause | allowed |
+| `Bonkile2024` | PYBAMM | NMC811 / graphite+SiOx, 5 Ah | literature | PyBaMM built-in | Bonkile et al. 2024 [10.1016/j.jpowsour.2024.234256](https://doi.org/10.1016/j.jpowsour.2024.234256) | BSD-3-Clause | allowed |
+| `Chayambuka2022` | PYBAMM | NVPF / hard carbon, coin, 0.003 Ah | measured | PyBaMM built-in | Chayambuka et al. 2022 | BSD-3-Clause | allowed |
+| `Chen2020` | PYBAMM | LG INR21700-M50, NMC811 / graphite+SiOx, cylindrical 21700, 5 Ah | measured | PyBaMM built-in | Chen et al. 2020 [10.1149/1945-7111/ab9050](https://doi.org/10.1149/1945-7111/ab9050) | BSD-3-Clause | allowed |
+| `Chen2020_composite` | PYBAMM | LG INR21700-M50, NMC811 / graphite+Si, cylindrical 21700, 5 Ah (re-fit of `Chen2020`) | fitted | PyBaMM built-in | Ai et al. 2022 [10.1016/j.jpowsour.2022.231142](https://doi.org/10.1016/j.jpowsour.2022.231142) | BSD-3-Clause | allowed |
+| `Ecker2015` | PYBAMM | Kokam SLPB 75106100, NMC / graphite, pouch, 0.1562 Ah | measured | PyBaMM built-in | Ecker et al. 2015 [10.1149/2.0551509jes](https://doi.org/10.1149/2.0551509jes) | BSD-3-Clause | allowed |
+| `MSMR_Example` | PYBAMM | NMC / graphite, 5 Ah | literature | PyBaMM built-in | Verbrugge et al. 2017 | BSD-3-Clause | allowed |
+| `Marquis2019` | PYBAMM | Kokam SLPB78205130H, LCO / graphite, pouch, 0.6806 Ah | literature | PyBaMM built-in | Marquis et al. 2019 [10.1149/2.0341915jes](https://doi.org/10.1149/2.0341915jes) | BSD-3-Clause | allowed |
+| `Mohtat2020` | PYBAMM | UMBL 5 Ah pouch, NMC532 / graphite, pouch, 5 Ah | measured | PyBaMM built-in | Mohtat et al. 2020 [10.1149/1945-7111/aba5d1](https://doi.org/10.1149/1945-7111/aba5d1) | BSD-3-Clause | allowed |
+| `NCA_Kim2011` | PYBAMM | NCA / graphite, pouch, 0.43 Ah | fitted | PyBaMM built-in | Kim et al. 2011 [10.1149/1.3597614](https://doi.org/10.1149/1.3597614) | BSD-3-Clause | allowed |
+| `OKane2022` | PYBAMM | LG INR21700-M50, NMC811 / graphite+SiOx, cylindrical 21700, 5 Ah (re-fit of `Chen2020`) | fitted | PyBaMM built-in | O'Kane et al. 2022 [10.1039/D2CP00417H](https://doi.org/10.1039/D2CP00417H) | BSD-3-Clause | allowed |
+| `ORegan2022` | PYBAMM | LG INR21700-M50, NMC811 / graphite+SiOx, cylindrical 21700, 5 Ah (re-fit of `Chen2020`) | measured | PyBaMM built-in | O'Regan et al. 2022 [10.1016/j.electacta.2022.140700](https://doi.org/10.1016/j.electacta.2022.140700) | BSD-3-Clause | allowed |
+| `Prada2013` | PYBAMM | A123 ANR26650M1, LFP / graphite, cylindrical 26650, 2.3 Ah | fitted | PyBaMM built-in | Prada et al. 2013 [10.1149/2.053304jes](https://doi.org/10.1149/2.053304jes) | BSD-3-Clause | allowed |
+| `Ramadass2004` | PYBAMM | Sony US18650, LCO / graphite, cylindrical 18650, 1 Ah | fitted | PyBaMM built-in | Ramadass et al. 2004 [10.1149/1.1634273](https://doi.org/10.1149/1.1634273) | BSD-3-Clause | allowed |
+| `AboutEnergy2022_LFP` | ABOUT_ENERGY | LFP / graphite, cylindrical 18650, 2 Ah | fitted | BPX | About:Energy 2022 [link](https://github.com/About-Energy-OpenSource/About-Energy-BPX-Parameterisation) | CC-BY-SA-4.0 | allowed |
+| `AboutEnergy2022_NMC111` | ABOUT_ENERGY | NMC111 / graphite, pouch, 12.5 Ah | fitted | BPX | About:Energy 2022 [link](https://github.com/About-Energy-OpenSource/About-Energy-BPX-Parameterisation) | CC-BY-SA-4.0 | allowed |
+| `AboutEnergy_Gen1Demo` | ABOUT_ENERGY | NMC811 / graphite, cylindrical 21700, 5 Ah | fictitious (demo / design) | BPX | About:Energy 2025 [link](https://github.com/About-Energy-OpenSource/AEPyBaMM) | BSD-3-Clause | allowed |
+| `Dickinson2026_P45B` | ABOUT_ENERGY | Molicel INR21700-P45B, NCA / graphite+SiOx, cylindrical 21700, 4.5 Ah | fitted | BPX | Dickinson et al. 2026 [10.1149/1945-7111/aea1c1](https://doi.org/10.1149/1945-7111/aea1c1) | BSD-3-Clause (repository); article CC-BY-NC-ND-4.0 | not stated |
+| `Roder2026_IONIQ5` | BAYREUTH | NMC811 / graphite, 0.008041 Ah | measured | paper tables / figures | Röder et al. 2026 [10.1016/j.jpowsour.2026.239594](https://doi.org/10.1016/j.jpowsour.2026.239594) | CC-BY-4.0 | allowed |
+| `Forman2012` | BERKELEY | A123 ANR26650M1, LFP / graphite, cylindrical 26650, 2.3 Ah | fitted | paper tables / figures | Forman et al. 2012 [10.1016/j.jpowsour.2012.03.009](https://doi.org/10.1016/j.jpowsour.2012.03.009) | not stated | not stated |
+| `ORegan2024_NaIon` | BIRMINGHAM | NMST2488 / hard carbon, coin, 0.003359 Ah | measured | paper tables / figures | O'Regan et al. 2024 [link](https://etheses.bham.ac.uk/id/eprint/15003) | CC-BY-4.0 | allowed |
+| `Haber2023_SDI37` | CEA | Samsung SDI 37 Ah prismatic, NMC111 / graphite, prismatic, 37 Ah | measured | paper tables / figures | Haber et al. 2023 [link](https://theses.hal.science/tel-04120919) | not stated | not stated |
+| `Liebig2019` | DLR | NMC / graphite, prismatic, 40 Ah | measured | paper tables / figures | Liebig et al. 2019 [10.3390/batteries5030062](https://doi.org/10.3390/batteries5030062) | CC-BY-4.0 | allowed |
+| `Schmitt2023_30T` | DLR | Samsung INR21700-30T, NCA / graphite, cylindrical 21700, 3 Ah | measured | paper tables / figures | Schmitt et al. 2023 [10.1149/1945-7111/ace1a7](https://doi.org/10.1149/1945-7111/ace1a7) | CC-BY-4.0 | allowed |
+| `Schmitt2023_50E` | DLR | Samsung INR21700-50E, NCA / graphite+SiOx, cylindrical 21700, 4.9 Ah | measured | paper tables / figures | Schmitt et al. 2023 [10.1149/1945-7111/ace1a7](https://doi.org/10.1149/1945-7111/ace1a7) | CC-BY-4.0 | allowed |
+| `Schmitt2026_HYDRA` | HYDRA | LNMO / graphite, pouch, 1 Ah | fitted | BPX | Schmitt et al. 2026 [10.48550/arXiv.2601.10507](https://doi.org/10.48550/arXiv.2601.10507) | CC-BY-4.0 | allowed |
+| `Schmitt2026_HYDRA_v2` | HYDRA | LNMO / graphite, pouch, 1 Ah (re-fit of `Schmitt2026_HYDRA`) | fitted | BPX | Schmitt et al. 2026 [10.48550/arXiv.2601.10507](https://doi.org/10.48550/arXiv.2601.10507) | GPL-3.0 | allowed |
+| `OKane2023_ECDMC37` | IMPERIAL | LG INR21700-M50, NMC811 / graphite+SiOx, cylindrical 21700, 5 Ah (re-fit of `OKane2022`) | literature | PyBaMM file | Anonymous 2025 [10.5281/zenodo.17074144](https://doi.org/10.5281/zenodo.17074144) | CC-BY-4.0 | allowed |
+| `OKane2023_ECDMC64` | IMPERIAL | LG INR21700-M50, NMC811 / graphite+SiOx, cylindrical 21700, 5 Ah (re-fit of `OKane2022`) | literature | PyBaMM file | Anonymous 2025 [10.5281/zenodo.17074144](https://doi.org/10.5281/zenodo.17074144) | CC-BY-4.0 | allowed |
+| `Zhuo2023_MJ1` | IMPERIAL | LG INR18650-MJ1, NMC811 / graphite+Si, cylindrical 18650, 3.35 Ah | literature | PyBaMM file | Zhuo et al. 2023 [10.1016/j.jpowsour.2022.232461](https://doi.org/10.1016/j.jpowsour.2022.232461) | CC0-1.0 | allowed |
+| `Schmalstieg2018` | ISEA | NMC111 / graphite, prismatic, 28 Ah | measured | paper tables / figures | Schmalstieg et al. 2018 [10.1149/2.0321816jes](https://doi.org/10.1149/2.0321816jes) | CC-BY-4.0 | allowed |
+| `Jeong2024` | KAIST | UMBL 5 Ah pouch, NMC532 / graphite, pouch, 5 Ah (re-fit of `Mohtat2020`) | fitted | PyBaMM file | Jeong et al. 2025 [10.2139/ssrn.5273877](https://doi.org/10.2139/ssrn.5273877) | not stated | not stated |
+| `Kuhn2023_BASF` | KIT | NCM-851005 / graphite, pouch, 0.03965 Ah | fitted | PyBaMM file | Kuhn et al. 2023 [10.1002/batt.202200374](https://doi.org/10.1002/batt.202200374) | GPL-3.0 | not stated |
+| `Durdel2023` | LITERATURE | NCA / Si, coin 2032, 0.005809 Ah | measured | paper tables / figures | Durdel et al. 2023 [10.3390/batteries9110558](https://doi.org/10.3390/batteries9110558) | CC-BY-4.0 | allowed |
+| `Torchio2016_LIONSIMBA` | LITERATURE | LCO / graphite, pouch, 60 Ah (re-fit of `Ramadass2004`) | literature | MATLAB | Torchio et al. 2016 [10.1149/2.0291607jes](https://doi.org/10.1149/2.0291607jes) | MIT | allowed |
+| `Xu2015` | LITERATURE | LP2770120, LFP / graphite, prismatic, 16.5 Ah | literature | paper tables / figures | Xu et al. 2015 [10.1016/j.energy.2014.11.073](https://doi.org/10.1016/j.energy.2014.11.073) | AGPL-3.0 | allowed |
+| `Zulke2021` | LITERATURE | NCA / graphite+SiOx, cylindrical 21700, 4.8 Ah | measured | paper tables / figures | Zuelke et al. 2021 [10.1149/1945-7111/ac3e4a](https://doi.org/10.1149/1945-7111/ac3e4a) | not stated | not stated |
+| `Dhir2024_KIon` | OXFORD | KMF (K2Mn[Fe(CN)6]) / graphite, cylindrical 21700, 1.968 Ah | fictitious (demo / design) | paper tables / figures | Dhir et al. 2024 [10.1038/s41467-024-51537-w](https://doi.org/10.1038/s41467-024-51537-w) | CC-BY-4.0 | allowed |
+| `Smith2006` | PSU | metal oxide (unspecified) / graphite (MCMB), 6 Ah | fitted | paper tables / figures | Smith et al. 2006 [10.1016/j.jpowsour.2006.03.050](https://doi.org/10.1016/j.jpowsour.2006.03.050) | not stated | not stated |
+| `Ha2024_M50T` | STANFORD | LG INR21700-M50T, NMC811 / graphite+SiOx, cylindrical 21700, 4.877 Ah (re-fit of `Chen2020`) | fitted | MATLAB | Ha et al. 2024 [10.1149/1945-7111/ad7292](https://doi.org/10.1149/1945-7111/ad7292) | MIT | allowed |
+| `Schneider2025_NA18650` | STUTTGART | Shenzhen Mushang NA18650-1250, NaNFM (Na0.96Ca0.02Ni1/3Fe1/3Mn1/3O2) / hard carbon, cylindrical 18650, 1.25 Ah | measured | paper tables / figures | Schneider et al. 2025 [10.1149/1945-7111/adfd16](https://doi.org/10.1149/1945-7111/adfd16) | CC-BY-4.0 | allowed |
+| `Sturm2019_MJ1` | TUM | LG INR18650-MJ1, NMC811 / graphite+Si, cylindrical 18650, 3.35 Ah | measured | paper tables / figures | Sturm et al. 2019 [10.1016/j.jpowsour.2018.11.043](https://doi.org/10.1016/j.jpowsour.2018.11.043) | CC-BY-NC-ND-4.0 (accepted manuscript) | not allowed |
+| `Hebenbrock2025` | TU_CLAUSTHAL | NMC811 / graphite, pouch, 1.1 Ah | measured | PyBaMM file | Hebenbrock et al. 2026 [10.1016/j.est.2026.121255](https://doi.org/10.1016/j.est.2026.121255) | CC-BY-4.0 | allowed |
+
+Notes: `Smith2006` is transcribed as published, although its positive electrode's stoichiometry window gives 6.0 Ah
+against the paper's 7.2 Ah. `Xu2015`'s upper cut-off (3.32 V) is the OCV of the paper's full-charge state, as the paper
+gives no charge voltage. `AboutEnergy_Gen1Demo` and `Dhir2024_KIon` are a demonstration cell and a design cell.
 
 ## Coming next
 
