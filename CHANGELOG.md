@@ -3,6 +3,14 @@
 Releases of the standardized data. Each release is a complete, versioned copy of the store. From 2.0 one release
 number covers both stores.
 
+## Service (2026-10-26)
+
+- Every store has a `SHA256SUMS` file (the format of `sha256sum -c`), and every change to a store is logged with its
+  date and the datasets it touched. Both are on the hub's release page. Old releases are not kept: the checksums tell
+  which publication a downloaded file belongs to.
+- Downloads (`download()` in the Python package, the `download` MCP tool) now come with each dataset's licence,
+  commercial-use status and source; the package keeps them in `LICENSES.json`.
+
 ## 2.0 + parameter sets (2026-10-26, schema 2.1.0)
 
 - **Parameter-set store** `releases/2.0/parameter_sets/`, a third store next to cells and devices: 43 cell parameter

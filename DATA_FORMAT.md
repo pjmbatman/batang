@@ -25,7 +25,9 @@ Contents: [Layout](#layout) · [Naming rules](#naming-rules) · [Common rules](#
 ```
 releases/2.0/
   manifest.json                  release, schema version, the stores and their totals
+  PUBLISHED.jsonl                one line per change to a store: date, files added / changed / removed, datasets
   cells/
+    SHA256SUMS                   every file's SHA-256 (sha256sum -c format); the same in devices/ and parameter_sets/
     manifest.json                format and schema versions, columns, dtypes and units, license per dataset,
                                  per-file sizes and SHA-256
     catalog.parquet              one row per cell
@@ -63,6 +65,8 @@ releases/2.0/
 
 Every dataset and record folder is self-contained, so you can request and use only the datasets or records you
 need. A download from the server (Python client or MCP `download`) keeps the `<DATASET>/<id>/` part of this layout.
+Old releases are not kept; `SHA256SUMS` (on the hub's release page) tells which publication a downloaded file
+belongs to.
 
 ## Naming rules
 

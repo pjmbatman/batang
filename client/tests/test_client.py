@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -108,9 +110,14 @@ class Remote(Base):
 class Local(Base):
     def test_download_then_local_first(self):
         db = self.client()
-        paths = db.download(["SYN_A"])
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            paths = db.download(["SYN_A"])
         self.assertEqual(len(paths), 3)
         self.assertTrue(all(os.path.isfile(p) for p in paths))
+        lic = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(paths[0]))), "LICENSES.json")))
+        self.assertEqual(lic["SYN"]["commercial_use"], "allowed")
+        self.assertIn("SYN: CC-BY-4.0", err.getvalue())
         before = len(self.fake.calls)
         df = db.cycles(["SYN_A"], kind="aging", exclude_flags=True)
         self.assertEqual(df.attrs["source"], "local")

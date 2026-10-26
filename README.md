@@ -129,7 +129,8 @@ MIT-licensed.
 **Python package.** Install it from this repository, sign in once with your Yonsei Google account, and use the
 same operations as the MCP tools (`find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `query`, `download`).
 It reads what you have downloaded first and asks the server only for the rest; nothing is downloaded unless you call
-`download()`.
+`download()`. Each download records the licences of its datasets in `LICENSES.json` next to the files and prints them
+once per dataset: follow them and cite the original sources.
 
 ```bash
 pip install "git+https://github.com/pjmbatman/batang#subdirectory=client"
