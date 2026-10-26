@@ -198,15 +198,20 @@ class Client:
 
     def find_records(self, tasks=None, dataset=None, cathode_family=None, form_factor=None, size_code=None, chemistry=None,
                      level=None, setting=None, label_tier=None, commercial_use=None, fault_status=None, kind=None,
-                     temp_min=None, temp_max=None, crate_min=None, crate_max=None, text=None, limit=None, **legacy):
+                     temp_min=None, temp_max=None, crate_min=None, crate_max=None, text=None, limit=None,
+                     cycles_min=None, cycles_max=None, soh_min=None, soh_max=None, efc_min=None, efc_max=None, sort=None,
+                     **legacy):
         """Cells and devices by their properties → DataFrame (df.attrs: matched, by_kind, by_dataset, by_cathode_family).
         tasks: aging | fault. kind: cell | device | session. level: cell, module, pack, system, vehicle. setting: lab,
-        field, field_returned. 1.x filter names (task, cell_format, unit_level, domain) are still accepted."""
+        field, field_returned. cycles_min/max, soh_min/max (0–1), efc_min/max: the record's cycles, last SOH and
+        equivalent full cycles. sort: dataset (default) | cycles | efc (most first) | soh (lowest first). 1.x filter
+        names (task, cell_format, unit_level, domain) are still accepted."""
         args = _drop_none(dict(tasks=tasks, dataset=dataset, cathode_family=cathode_family, form_factor=form_factor,
                                size_code=size_code, chemistry=chemistry, level=level, setting=setting,
                                label_tier=label_tier, commercial_use=commercial_use, fault_status=fault_status, kind=kind,
                                temp_min=temp_min, temp_max=temp_max, crate_min=crate_min, crate_max=crate_max, text=text,
-                               limit=limit))
+                               limit=limit, cycles_min=cycles_min, cycles_max=cycles_max, soh_min=soh_min, soh_max=soh_max,
+                               efc_min=efc_min, efc_max=efc_max, sort=sort))
         args.update(_drop_none(self._legacy_filters(legacy)))
         if self.offline:
             return self._find_local(**args)
@@ -225,7 +230,11 @@ class Client:
             raise TypeError(f"unknown filter {bad[0]!r}")
         return N.filters(legacy)
 
-    def _find_local(self, limit=None, **f):
+    # the record's number, by the name of its range filter; the orders of sort (column, larger first)
+    _RANGES = {"temp": "ambient_temperature_c", "crate": "discharge_c_rate_typical", "cycles": "n_cycles", "soh": "soh_end", "efc": "efc_end"}
+    _SORTS = {"cycles": ("n_cycles", False), "efc": ("efc_end", False), "soh": ("soh_end", True)}
+
+    def _find_local(self, limit=None, sort=None, **f):
         p = os.path.join(self.cache, self.release, "catalog.parquet")
         if not os.path.isfile(p):
             raise OfflineError("the catalog (download_catalog() it first)")
@@ -236,8 +245,8 @@ class Client:
                 want = set(v if isinstance(v, (list, tuple)) else [v])
                 m &= df["tasks"].map(lambda t: bool(want & set(t.split(",") if isinstance(t, str) else
                                                                list(t if t is not None else []))))
-            elif k in ("temp_min", "temp_max", "crate_min", "crate_max"):
-                col = "ambient_temperature_c" if k.startswith("temp") else "discharge_c_rate_typical"
+            elif k.rsplit("_", 1)[0] in self._RANGES and k.endswith(("_min", "_max")):
+                col = self._RANGES[k.rsplit("_", 1)[0]]
                 if col not in df:
                     raise OfflineError(f"filtering by {k}")
                 m &= (df[col] >= v) if k.endswith("min") else (df[col] <= v)
@@ -256,6 +265,10 @@ class Client:
             else:
                 raise OfflineError(f"filtering by {k}")
         out = df[m]
+        if sort not in (None, "dataset") and sort not in self._SORTS:
+            raise ValueError("sort: dataset, cycles, efc, soh")
+        if sort in self._SORTS and self._SORTS[sort][0] in out:
+            out = out.sort_values(self._SORTS[sort][0], ascending=self._SORTS[sort][1], na_position="last", kind="stable")
         res = (out.head(int(limit)) if limit is not None else out).reset_index(drop=True)
         res.attrs.update(matched=int(len(out)), by_kind=out["kind"].value_counts().to_dict(),
                          by_dataset=out["dataset"].value_counts().to_dict(), source="local")

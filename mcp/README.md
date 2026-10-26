@@ -18,7 +18,8 @@ The server's tools (`info`, `find_records`, `describe`, `stats`, `cycles`, `cycl
 ([DATA_FORMAT.md](../DATA_FORMAT.md)): for example `cycle_time_s`, `voltage_min_v`, `efc`, `size_code`, `device_id`,
 the SQL views `cells`, `devices`, `cycles`, `segments`, `samples`, `device_samples` and the macros
 `cycle_samples()`, `segment_samples()`. `find_records` takes `kind` `cell`, `device` or `session`; filters are
-`tasks`, `size_code`, `level`, `setting`; `stats` takes `grain` (`record`, `cycle`, `segment`). For release 2.0 the
+`tasks`, `size_code`, `level`, `setting`, ranges of temperature, C-rate, cycle count, last SOH and EFC, and `sort`
+(`cycles`, `efc`, `soh`) with `limit` for a first look; `stats` takes `grain` (`record`, `cycle`, `segment`). For release 2.0 the
 server also accepts the 1.x names in tool arguments (`task`, `cell_format`, `unit_level`, `domain`,
 `stats(level="cycle")`, `v_min` ...), translates them and lists them under `renamed` in the answer. The bridge forwards everything
 unchanged, so version 0.3 differs from 0.2 only in this documentation; both work with release 2.0.
