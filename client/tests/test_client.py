@@ -162,6 +162,9 @@ class Local(Base):
         self.assertEqual(off.cycles(["SYN_A"]).attrs["source"], "local")
         self.assertEqual(list(off.find_records(cathode_family="NMC")["id"]), ["SYN_B"])
         self.assertEqual(len(off.find_records(tasks="aging")), 2)
+        self.assertEqual(list(off.find_records(cycles_min=5)["id"]), ["SYN_B"])                 # ranges and order offline too
+        self.assertEqual(list(off.find_records(sort="soh", limit=1)["id"]), ["SYN_B"])
+        self.assertEqual(list(off.find_records(sort="cycles")["id"]), ["SYN_B", "SYN_A"])
         with self.assertRaises(batang.OfflineError):
             off.cycles(["SYN_B"])
         with self.assertRaises(batang.OfflineError):

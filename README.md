@@ -109,7 +109,7 @@ Then ask the assistant to log in to Batang (`login`): open the link it shows and
 | Tool | What it does |
 |---|---|
 | `info` | releases, datasets with counts, licences and commercial use, filter vocabularies |
-| `find_records` | cells and devices by task (`tasks`), dataset, cathode, form factor, size, chemistry, level, setting, label, commercial use, fault status, temperature or C-rate range |
+| `find_records` | cells and devices by task (`tasks`), dataset, cathode, form factor, size, chemistry, level, setting, label, commercial use, fault status, temperature, C-rate, cycle count, last SOH or EFC range; `sort` by cycles, EFC or SOH, `limit` the rows |
 | `describe` | one dataset, cell or device: properties, test conditions, SOH definition or fault label, quality, licence |
 | `stats` | counts and statistics of catalog metrics (`grain="record"`), or of cycle and segment rows that match conditions (`grain="cycle"` / `"segment"`), grouped |
 | `cycles` | cycle rows of cells, segment rows of devices |

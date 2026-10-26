@@ -10,6 +10,11 @@ number covers both stores.
   which publication a downloaded file belongs to.
 - Downloads (`download()` in the Python package, the `download` MCP tool) now come with each dataset's licence,
   commercial-use status and source; the package keeps them in `LICENSES.json`.
+- `find_records` (MCP and Python, also offline) filters by cycle count, last SOH and EFC (`cycles_min`/`cycles_max`,
+  `soh_min`/`soh_max`, `efc_min`/`efc_max`) and orders the rows with `sort` (`cycles`, `efc`: most first; `soh`:
+  lowest first). "NMC cylindrical cells past 1000 cycles, longest first" is one call:
+  `find_records(tasks="aging", kind="cell", cathode_family="NMC", form_factor="cylindrical", cycles_min=1000, sort="cycles", limit=20)`.
+  Without `limit` every matching row still comes back.
 
 ## 2.0 + parameter sets (2026-10-26, schema 2.1.0)
 

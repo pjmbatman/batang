@@ -55,8 +55,8 @@ class Fake:
         self.store, self.calls, self.links, self.big_rows = store, [], {}, big_rows
         self.device_polls = 0
         self.rate_limited = 0                 # answer this many file requests with a per-minute 429 first
-        self.records = [{"id": "SYN_A", "dataset": "SYN", "kind": "cell", "cathode_family": "LFP", "size_code": "18650"},
-                        {"id": "SYN_B", "dataset": "SYN", "kind": "cell", "cathode_family": "NMC", "size_code": "21700"}]
+        self.records = [{"id": "SYN_A", "dataset": "SYN", "kind": "cell", "cathode_family": "LFP", "size_code": "18650", "n_cycles": 4, "soh_end": 0.9},
+                        {"id": "SYN_B", "dataset": "SYN", "kind": "cell", "cathode_family": "NMC", "size_code": "21700", "n_cycles": 8, "soh_end": 0.8}]
 
     def link(self, path, once=True):
         tok = secrets.token_hex(8)
