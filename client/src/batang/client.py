@@ -406,7 +406,30 @@ class Client:
 
     def _download_links(self, ids=None, files=None, **filters):
         ans = self._call("download", ids=ids, files=N.files(files), **N.filters(filters))
+        self._licenses = ans.get("licenses") or {}
         return ans.get("links", [])
+
+    def _note_licenses(self, root):
+        """Keep the licences of what was downloaded in <root>/LICENSES.json and say once per dataset what they are."""
+        lic = getattr(self, "_licenses", None) or {}
+        if not lic:
+            return
+        p = os.path.join(root, "LICENSES.json")
+        try:
+            with open(p, encoding="utf-8") as f:
+                known = json.load(f)
+        except (OSError, ValueError):
+            known = {}
+        new = {d: v for d, v in lic.items() if d not in known}
+        known.update(lic)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(known, f, indent=1, ensure_ascii=False)
+        for d, v in sorted(new.items()):
+            use = {"allowed": "commercial use allowed", "not_allowed": "NO commercial use", "unclear": "commercial use unclear: ask the owner"}
+            print(f"batang: {d}: {v.get('license') or 'licence not stated'} ({use.get(v.get('commercial_use'), 'see the source')}); "
+                  f"cite {v.get('source') or 'the original source'}" + (f" ({v['note']})" if v.get("note") else ""), file=sys.stderr)
+        if new:
+            print(f"batang: follow each dataset's licence, cite it and Batang, do not redistribute; list in {p}", file=sys.stderr)
 
     def download(self, selection=None, columns=None, to=None, files=None, **filters):
         """Download the files of a Selection, a list of ids or the records matching filters, into the cache (or `to`).
@@ -467,6 +490,7 @@ class Client:
         os.makedirs(root, exist_ok=True)
         with open(idx_path, "w", encoding="utf-8") as f:
             json.dump(idx, f, indent=1)
+        self._note_licenses(root)
         sel_dir = os.path.join(root, "selections")
         os.makedirs(sel_dir, exist_ok=True)
         stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")

@@ -115,7 +115,7 @@ class Fake:
                     p = os.path.join(self.store, "SYN", i, f)
                     out.append({"id": i, "dataset": "SYN", "file": f, "name": f"SYN/{i}/{f}", "size": os.path.getsize(p),
                                 "url": f"{base}/mcp/files/{self.link(p, once=False)}"})
-            return {"links": out}
+            return {"links": out, "licenses": {"SYN": {"license": "CC-BY-4.0", "commercial_use": "allowed", "source": "10.0/syn"}}}
         raise ToolErr({"error": "bad_request", "message": f"no tool {name}"})
 
 
