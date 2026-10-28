@@ -31,6 +31,7 @@ from mcp.server.stdio import stdio_server
 from . import __version__
 
 MCP_URL = os.environ.get("BATANG_MCP_URL", "https://api.batanghub.com/mcp").rstrip("/")
+UA = "batang-mcp"   # urllib's own User-Agent is refused by the site's CDN (Cloudflare 1010)
 TOKEN_FILE = os.path.join(os.path.expanduser("~"), ".config", "batang", "token")
 CLIENT_NAME = "Batang MCP (로컬 브리지)"
 
@@ -77,7 +78,7 @@ def _origin(url):
 
 
 def _get_json(url, data=None, headers=None, timeout=30):
-    req = urllib.request.Request(url, data=data, headers=headers or {})
+    req = urllib.request.Request(url, data=data, headers={"User-Agent": UA, **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, json.load(r)
@@ -148,7 +149,7 @@ def _token_refused():
     if not token:
         return True
     req = urllib.request.Request(MCP_URL, data=b"{}", method="POST",
-                                 headers={"Authorization": "Bearer " + token, "Content-Type": "application/json",
+                                 headers={"Authorization": "Bearer " + token, "Content-Type": "application/json", "User-Agent": UA,
                                           "Accept": "application/json, text/event-stream"})
     try:
         with urllib.request.urlopen(req, timeout=20):
@@ -223,7 +224,7 @@ async def _save_link(url, path):
     os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
 
     def get():
-        req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token})
+        req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token, "User-Agent": UA})
         n = 0
         with urllib.request.urlopen(req, timeout=600) as r, open(dest + ".part", "wb") as f:
             while True:

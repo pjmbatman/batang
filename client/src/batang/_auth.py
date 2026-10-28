@@ -72,7 +72,8 @@ def forget(auth_url):
 
 def _post(url, data, timeout=30):
     req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(),
-                                 headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
+                                 headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json",
+                                          "User-Agent": "batang-python"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, json.loads(r.read() or b"{}")
