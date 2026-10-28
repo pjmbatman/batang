@@ -3,7 +3,7 @@
 Local MCP bridge to [Batang](https://github.com/pjmbatman/batang), the standardized battery ageing and fault
 database.
 
-The tools live on the Batang server (`https://batang.yonsei.ac.kr/mcp`). This program connects to it with your
+The tools live on the Batang server (`https://api.batanghub.com/mcp`). This program connects to it with your
 Batang token and offers exactly the server's tools and instructions to your assistant over stdio, so it always
 matches the server. It adds three local tools:
 
@@ -29,10 +29,10 @@ unchanged, so version 0.3 differs from 0.2 only in this documentation; both work
 **Remote (recommended).** No install; the assistant handles the sign-in.
 
 ```bash
-claude mcp add --transport http batang https://batang.yonsei.ac.kr/mcp
+claude mcp add --transport http batang https://api.batanghub.com/mcp
 ```
 
-claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://batang.yonsei.ac.kr/mcp`.
+claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://api.batanghub.com/mcp`.
 
 **Local bridge (this package).** Needs [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
@@ -56,11 +56,11 @@ Then ask the assistant to log in to Batang. When the token expires, the next cal
 
 ## Access and limits
 
-- Sign-in with a Yonsei University Google account (`@yonsei.ac.kr`); other researchers apply on the sign-in page.
+- A Batang account: sign up at https://batanghub.com/signup (Yonsei accounts at once; other researchers apply there).
 - Read-only. Use is limited per person (requests per minute, query time and data per day), not per tool.
 - Each dataset keeps its own licence: check `license` and `commercial_use` and cite the original source.
 
-Environment: `BATANG_MCP_URL` (default `https://batang.yonsei.ac.kr/mcp`), `BATANG_TOKEN` (a token to use instead of
+Environment: `BATANG_MCP_URL` (default `https://api.batanghub.com/mcp`), `BATANG_TOKEN` (a token to use instead of
 `login`, e.g. on a server).
 
 MIT licence ([LICENSE](LICENSE)).

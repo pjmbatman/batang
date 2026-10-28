@@ -3,6 +3,14 @@
 Releases of the standardized data. Each release is a complete, versioned copy of the store. From 2.0 one release
 number covers both stores.
 
+## Service (2026-10-28)
+
+- The site moved to **https://batanghub.com**. Programs use **https://api.batanghub.com**: the MCP endpoint is
+  `https://api.batanghub.com/mcp`, and the Python package (0.2.1) and the MCP bridge (0.3.1) use it by default. The old address
+  no longer answers: re-add the MCP connector with the new URL and run `batang login` once more.
+- Sign-up is separate from sign-in: create an account at https://batanghub.com/signup (terms and privacy consent),
+  then sign in.
+
 ## Service (2026-10-26)
 
 - Every store has a `SHA256SUMS` file (the format of `sha256sum -c`), and every change to a store is logged with its
