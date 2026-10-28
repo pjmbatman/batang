@@ -14,11 +14,12 @@ Requires Python 3.10+, with numpy, pandas and pyarrow. The extras add `sql` (duc
 ## Log in
 
 ```bash
-batang login        # shows a code, opens https://batang.yonsei.ac.kr/auth/device; approve it with your Google account
+batang login        # shows a code, opens https://batanghub.com/auth/device; approve it with your Google account
 batang whoami
 ```
 
-Access is open to @yonsei.ac.kr Google accounts. Anyone outside Yonsei can apply for access on the site. Once a request is approved, that person logs in the same way.
+You need a Batang account first: sign up at https://batanghub.com/signup with a Google account. Yonsei University accounts (@yonsei.ac.kr) can use it at once; anyone else applies there, and logs in the same way once the request is approved.
+After the site moved to batanghub.com (2026-10-27), run `batang login` once more: tokens are kept per server.
 The token is valid for 7 days. It is stored in `~/.config/batang/token` (mode 600) and is never printed.
 The first call in an interactive session logs you in by itself. Scripts and CI can set `BATANG_TOKEN` instead; you create a token on the account page.
 
@@ -27,7 +28,7 @@ The first call in an interactive session logs you in by itself. Scripts and CI c
 ```python
 import batang
 
-db = batang.connect()                      # https://batang.yonsei.ac.kr/mcp, cache in ~/batang_cache
+db = batang.connect()                      # https://api.batanghub.com/mcp, cache in ~/batang_cache
 
 lfp = db.find_records(tasks="aging", cathode_family="LFP")
 lfp.attrs["matched"], lfp.attrs["by_dataset"]
@@ -124,7 +125,7 @@ batang validate my_cell/
 
 | | |
 |---|---|
-| `BATANG_URL` | MCP endpoint (default `https://batang.yonsei.ac.kr/mcp`) |
+| `BATANG_URL` | MCP endpoint (default `https://api.batanghub.com/mcp`) |
 | `BATANG_AUTH_URL` | login service, when it is not at the endpoint's origin |
 | `BATANG_TOKEN` | a token to use instead of the stored one |
 | `BATANG_CONFIG_DIR` | where the token is kept (default `~/.config/batang`) |

@@ -1,6 +1,6 @@
 """batang.Client: the Batang operations from Python.
 
-    db = batang.connect()                               # https://batang.yonsei.ac.kr, login on first use
+    db = batang.connect()                               # https://api.batanghub.com/mcp, login on first use
     db.find_records(tasks="aging", cathode_family="LFP")
     db.cycles(["STROEBL_S1_k01_01"], kind="aging", columns=["efc", "soh"])
     db.cycle_samples("STROEBL_S1_k01_01", 12, columns=["voltage_v", "current_a"])

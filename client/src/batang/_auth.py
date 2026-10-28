@@ -14,7 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-DEFAULT_URL = "https://batang.yonsei.ac.kr/mcp"
+DEFAULT_URL = "https://api.batanghub.com/mcp"
 CLIENT_NAME = "batang (Python)"
 
 

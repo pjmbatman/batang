@@ -50,7 +50,7 @@ def main(argv=None):
 
 def _main(argv=None):
     ap = argparse.ArgumentParser(prog="batang", description="Batang client")
-    ap.add_argument("--url", default=None, help="MCP endpoint (default https://batang.yonsei.ac.kr/mcp or $BATANG_URL)")
+    ap.add_argument("--url", default=None, help="MCP endpoint (default https://api.batanghub.com/mcp or $BATANG_URL)")
     ap.add_argument("--cache", default="~/batang_cache")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("login")

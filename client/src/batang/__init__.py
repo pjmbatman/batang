@@ -16,14 +16,14 @@ from .client import Client, OfflineError, Selection, SizeError
 from .connectors import CycleWindows, export, to_numpy, torch_dataset
 from .local import LegacyLayoutError, LocalStore, validate
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 SCHEMA = "2.0.0"
 __all__ = ["connect", "open", "validate", "Client", "Selection", "LocalStore", "CycleWindows", "to_numpy",
            "torch_dataset", "export", "BatangError", "AuthError", "OfflineError", "SizeError", "LegacyLayoutError"]
 
 
 def connect(url=None, cache="~/batang_cache", release=None, prefer="auto", offline=False, **kw):
-    """A Client for the Batang server (default https://batang.yonsei.ac.kr/mcp, or $BATANG_URL)."""
+    """A Client for the Batang server (default https://api.batanghub.com/mcp, or $BATANG_URL)."""
     return Client(url=url, cache=cache, release=release, prefer=prefer, offline=offline, **kw)
 
 

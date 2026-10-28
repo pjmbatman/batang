@@ -1,6 +1,6 @@
 """Batang MCP, local bridge: the tools of the remote Batang MCP server, run from your computer.
 
-The tools are defined once, on the server (https://batang.yonsei.ac.kr/mcp). This program connects to it with your
+The tools are defined once, on the server (https://api.batanghub.com/mcp). This program connects to it with your
 Batang token and re-exposes exactly the remote tool list, descriptions and instructions over stdio, forwarding every
 call, so it always matches the remote server. It adds only what needs your computer:
 
@@ -8,9 +8,9 @@ call, so it always matches the remote server. It adds only what needs your compu
     whoami     the signed-in account and the token's expiry
     save_link  download a result or file link from a remote answer (/mcp/results/..., /mcp/files/...) to a local path
 
-Read-only. Access needs a Yonsei University Google account (@yonsei.ac.kr) or an approved application.
+Read-only. Access needs a Batang account (sign up at https://batanghub.com/signup).
 
-Environment: BATANG_MCP_URL (default https://batang.yonsei.ac.kr/mcp), BATANG_TOKEN (a token, instead of the file).
+Environment: BATANG_MCP_URL (default https://api.batanghub.com/mcp), BATANG_TOKEN (a token, instead of the file).
 """
 import json
 import os
@@ -30,7 +30,7 @@ from mcp.server.stdio import stdio_server
 
 from . import __version__
 
-MCP_URL = os.environ.get("BATANG_MCP_URL", "https://batang.yonsei.ac.kr/mcp").rstrip("/")
+MCP_URL = os.environ.get("BATANG_MCP_URL", "https://api.batanghub.com/mcp").rstrip("/")
 TOKEN_FILE = os.path.join(os.path.expanduser("~"), ".config", "batang", "token")
 CLIENT_NAME = "Batang MCP (로컬 브리지)"
 

@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://batang.yonsei.ac.kr"><b>batang.yonsei.ac.kr</b></a> ·
+  <a href="https://batanghub.com"><b>batanghub.com</b></a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#option-2-ask-an-ai-assistant-mcp">MCP</a> ·
   <a href="DATASETS.md">Datasets</a> ·
@@ -25,9 +25,10 @@
   <a href="#acknowledgements">Acknowledgements</a>
 </p>
 
-> **Access:** sign in with a Yonsei University Google account (`@yonsei.ac.kr`). Other researchers can apply on the
-> sign-in page; access starts once the maintainer approves it. Everything is read-only.
-> [Privacy policy](https://batang.yonsei.ac.kr/privacy) · [Terms](https://batang.yonsei.ac.kr/terms)
+> **Access:** create an account on [batanghub.com](https://batanghub.com/signup) with a Google account and agree to
+> the terms. Yonsei University accounts (`@yonsei.ac.kr`) can use it at once; other researchers apply on the same page,
+> and access starts once the maintainer approves it. The public data is read-only.
+> [Privacy policy](https://batanghub.com/privacy) · [Terms](https://batanghub.com/terms)
 
 ---
 
@@ -45,6 +46,8 @@ you simulate cells with physics-based models and build, train and evaluate AI mo
 | | device store: 11 datasets of packs, storage systems, vehicles and fault tests · 1,513 devices and 31,449 charging sessions · 436 k segments · 336 M samples, with fault labels (normal / faulty / unknown) |
 | **Hub** | the Batang web site: an overview dashboard, datasets to explore and filter, cell and device pages with cycle summaries and raw voltage / current / temperature, cell comparison, the data model, release notes |
 | **Virtual Lab** | in the hub: **simulation** with PyBaMM (SPM, SPMe, DFN; cell parameter sets, experiment protocols built from steps, voltage and internal state variables) and **AI modeling** (pick records and preprocess them, build a model from blocks, train it on a GPU and watch it learn, evaluate a checkpoint on other data; the choices become PyTorch and NumPy code you can download) |
+| **Research assistant** | 바탕이, a chat in the hub that finds data, explains it and opens the right screen (a cell, a comparison, a simulation filled in for you to run); each conversation is private to the person |
+| **My data** | upload your own cycler files; they are converted into the same schema and can be explored and compared with the public cells, visible to you alone |
 | **AI assistants** | a remote MCP server: an assistant such as Claude searches, aggregates and reads the data for you, read-only |
 | **Data** | the standardized files themselves (Apache Parquet), for your own analysis or model training |
 
@@ -66,7 +69,7 @@ There are three ways to use Batang. All read the same standardized data, all nee
 
 ### Option 1: the Batang
 
-Open [batang.yonsei.ac.kr](https://batang.yonsei.ac.kr) and sign in. Nothing to install.
+Open [batanghub.com](https://batanghub.com), sign up once and sign in. Nothing to install.
 
 | Page | What you can do |
 |---|---|
@@ -89,10 +92,10 @@ anything the tools do not cover. Large results come back as download links inste
 
 ```bash
 # Claude Code
-claude mcp add --transport http batang https://batang.yonsei.ac.kr/mcp
+claude mcp add --transport http batang https://api.batanghub.com/mcp
 ```
 
-On claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://batang.yonsei.ac.kr/mcp`.
+On claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://api.batanghub.com/mcp`.
 
 **Local bridge.** [`mcp/`](mcp) runs on your computer and forwards to the same server, so it always has the same
 tools; it adds sign-in by browser approval and saving result links to your disk. Needs
@@ -126,7 +129,7 @@ MIT-licensed.
 
 ### Option 3: use the standardized data yourself
 
-**Python package.** Install it from this repository, sign in once with your Yonsei Google account, and use the
+**Python package.** Install it from this repository, sign in once with your Batang account, and use the
 same operations as the MCP tools (`find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `query`, `download`).
 It reads what you have downloaded first and asks the server only for the rest; nothing is downloaded unless you call
 `download()`. Each download records the licences of its datasets in `LICENSES.json` next to the files and prints them
@@ -190,7 +193,7 @@ If you use Batang, please cite it **and the original datasets you use** (see [DA
   author = {Park, Jimin},
   title  = {{Batang}: An Open Hub for Battery Data, Simulation and {AI} Modeling},
   year   = {2026},
-  url    = {https://batang.yonsei.ac.kr},
+  url    = {https://batanghub.com},
   note   = {Release 2.0}
 }
 ```
