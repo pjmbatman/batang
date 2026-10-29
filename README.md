@@ -10,7 +10,7 @@
 <p align="center">
   <b>The foundation for every battery experiment, model and insight.</b><br>
   <i>Batang</i> (바탕) means foundation in Korean. An open hub for battery research: public cycling and fault data
-  standardized into one schema, physics-based cell simulation and AI modeling, from the web, Python, HTTP or an AI
+  standardized into one schema, physics-based cell simulation and AI modeling, from the web, Python or an AI
   assistant.
 </p>
 
@@ -49,7 +49,7 @@ you simulate cells with physics-based models and build, train and evaluate AI mo
 | **Research assistant** | 바탕이, a chat in the hub that finds data, explains it and opens the right screen (a cell, a comparison, a simulation filled in for you to run); each conversation is private to the person |
 | **My data** | upload your own cycler files; they are converted into the same schema and can be explored and compared with the public cells, visible to you alone |
 | **AI assistants** | a remote MCP server: an assistant such as Claude searches, aggregates and reads the data for you, read-only |
-| **Data** | the standardized files themselves (Apache Parquet), for your own analysis or model training |
+| **Downloads** | the standardized files themselves (Apache Parquet), for your own analysis or model training: requested in the hub's 다운로드 tab and fetched once the request is approved |
 
 What "standardized" means:
 
@@ -66,6 +66,8 @@ What "standardized" means:
 ## Quick start
 
 There are three ways to use Batang. All read the same standardized data, all need a sign-in, and all are read-only.
+Batang is made for exploring, comparing, simulating and training inside the hub; the MCP server and the Python package
+query the data, and whole record files leave only through the hub's **다운로드** (Downloads) tab, after approval.
 
 ### Option 1: the Batang
 
@@ -79,6 +81,7 @@ Open [batanghub.com](https://batanghub.com), sign up once and sign in. Nothing t
 | **Device** | a pack's, system's, vehicle's or fault test's configuration, fault label, per-segment trend and signals |
 | **Compare** | several cells on one axis: SOH, capacity, efficiency, C-rates, temperatures ... against cycles or equivalent full cycles |
 | **Schema** | the data model: dataset → cell or device → cycle or segment → sample, with what every variable means |
+| **다운로드** (Downloads, under 내 공간) | put datasets, cells, devices or search results in a cart, see the size and the licences to acknowledge, and send a request with its purpose; the owner approves it (or rejects it with a reason), and an approved request gets download links valid for 7 days and 3 downloads per file, a `urls.txt` for `wget`, and the line for the Python package |
 | **Release notes**, **API · MCP**, **Docs** | what changed, how to connect an AI assistant, the data format and the dataset table |
 
 ### Option 2: ask an AI assistant (MCP)
@@ -86,7 +89,8 @@ Open [batanghub.com](https://batanghub.com), sign up once and sign in. Nothing t
 An assistant connected to Batang answers questions like *"How many LFP ageing cells are there?"*, *"Which NMC
 datasets allow commercial use?"* or *"For CALCE, how many ageing cycles per cell end below 2.8 V?"* by querying the
 data itself: it searches the catalog, aggregates on the server and reads cycles and samples, with read-only SQL for
-anything the tools do not cover. Large results come back as download links instead of filling the conversation.
+anything the tools do not cover. Large query results come back as links instead of filling the conversation. The
+tools query; they do not hand out whole record files (those come from the 다운로드 tab).
 
 **Remote (recommended).** Nothing to install; the assistant signs you in through the browser.
 
@@ -98,7 +102,7 @@ claude mcp add --transport http batang https://api.batanghub.com/mcp
 On claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://api.batanghub.com/mcp`.
 
 **Local bridge.** [`mcp/`](mcp) runs on your computer and forwards to the same server, so it always has the same
-tools; it adds sign-in by browser approval and saving result links to your disk. Needs
+tools; it adds sign-in by browser approval and saving query result links to your disk. Needs
 [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
@@ -119,32 +123,41 @@ Then ask the assistant to log in to Batang (`login`): open the link it shows and
 | `cycle_samples` | the samples of one cycle or segment, at full resolution or reduced |
 | `schema` | what a variable means, its unit and column name |
 | `query` | any read-only SQL (`SELECT`) over the views `cells`, `devices`, `cycles`, `segments`, `samples`, `device_samples` and the macros `cycle_samples()`, `segment_samples()` |
-| `download` | links to the files of selected cells and devices |
-| `login`, `whoami`, `save_link` | local bridge only: sign in, check the sign-in, save a link to a file |
+| `login`, `whoami`, `save_link` | local bridge only: sign in, check the sign-in, save a query result link to a file |
 
 Tools take and return the 2.0 column names of [DATA_FORMAT.md](DATA_FORMAT.md); for release 2.0 they also accept the
-1.x names in arguments. Use is limited per person (requests per minute, query time and data per day), not per tool. Check each dataset's
-`license` and `commercial_use` before you use a result, and cite the original source. The bridge in [`mcp/`](mcp) is
-MIT-licensed.
+1.x names in arguments. Use is limited per person (requests per minute, query time, and 2 GB of query results per day
+unless the maintainer raised it for you), not per tool. Check each dataset's `license` and `commercial_use` before you
+use a result, and cite the original source. The bridge in [`mcp/`](mcp) is MIT-licensed.
 
 ### Option 3: use the standardized data yourself
 
-**Python package.** Install it from this repository, sign in once with your Batang account, and use the
-same operations as the MCP tools (`find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `query`, `download`).
-It reads what you have downloaded first and asks the server only for the rest; nothing is downloaded unless you call
-`download()`. Each download records the licences of its datasets in `LICENSES.json` next to the files and prints them
-once per dataset: follow them and cite the original sources.
+**Request the files.** In the hub's 다운로드 tab, put what you need in the cart and send the request with its
+purpose. Once it is approved, the tab shows the grant id, the links (valid for 7 days, 3 downloads per file; the bytes
+come straight from storage) and a `urls.txt` for `wget -c -x -nH --cut-dirs=3 -i urls.txt`, which keeps the
+`<dataset>/<id>/` folders.
+
+**Python package.** Install it from this repository and sign in once with your Batang account. It fetches an approved
+request in parallel, resumes interrupted files, checks every file's size, and puts the files in the release layout
+that it reads locally:
 
 ```bash
 pip install "git+https://github.com/pjmbatman/batang#subdirectory=client"
 batang login
+batang download --grant G-20261029-AB12 --to ~/batang_data      # → ~/batang_data/2.0/<dataset>/<id>/
 ```
+
+The licences of the request's datasets are kept in `LICENSES.json` next to the files and printed once per dataset:
+follow them and cite the original sources. The package also queries, with the same operations as the MCP tools
+(`find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `schema`, `query`); it reads your local files first
+and asks the server only for the rest:
 
 ```python
 import batang
+store = batang.open("~/batang_data/2.0")
 db = batang.connect()
 lfp = db.find_records(tasks="aging", cathode_family="LFP")
-db.download(lfp.id[:10], columns=["voltage_v", "current_a"])
+db.cycles(lfp.id[:10], columns=["efc", "soh"])
 ```
 
 See [client/README.md](client/README.md) for offline use, validation of your own files and the PyTorch connector.
@@ -173,7 +186,7 @@ item = ds[0]   # {"cell_id", "cycle", "voltage_v": array, "current_a": array, ..
 
 Which features and labels exist, their units and how cycles, SOH and the flags are defined is the schema manual:
 [DATA_FORMAT.md](DATA_FORMAT.md). Release 2.0 renamed columns, files and folders (values are unchanged); files
-downloaded from a 1.x release keep the old names, so download 2.0 again
+downloaded from a 1.x release keep the old names, so request 2.0 again
 ([Changes from 1.x](DATA_FORMAT.md#changes-from-1x)).
 
 ## Raw data (reference only)
@@ -217,7 +230,7 @@ If you use Batang, please cite it **and the original datasets you use** (see [DA
   <a href="https://www.mpmc.yonsei.ac.kr/"><img src="docs/assets/mpmc-lab-logo.png" alt="MPMC Battery logo" width="120" align="right"></a>
 </p>
 
-The servers that run Batang for its users (the virtual machines, CPU and GPU behind the web hub, the query API and
+The servers that run Batang for its users (the virtual machines, CPU and GPU behind the web hub, the MCP server and
 the Virtual Lab) are provided by the [Multi-Physics Modeling & Computation Lab (MPMC)](https://www.mpmc.yonsei.ac.kr/),
 Yonsei University, led by Prof. Jung-Il Choi. I thank Prof. Choi and the MPMC lab for supporting the operation of
 this platform.

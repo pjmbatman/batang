@@ -64,7 +64,8 @@ releases/2.0/
 ```
 
 Every dataset and record folder is self-contained, so you can request and use only the datasets or records you
-need. A download from the server (Python client or MCP `download`) keeps the `<DATASET>/<id>/` part of this layout.
+need. An approved download (the hub's 다운로드 tab, fetched with `batang download --grant`) keeps the `<DATASET>/<id>/`
+part of this layout.
 Old releases are not kept; `SHA256SUMS` (on the hub's release page) tells which publication a downloaded file
 belongs to.
 

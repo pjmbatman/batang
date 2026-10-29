@@ -3,6 +3,27 @@
 Releases of the standardized data. Each release is a complete, versioned copy of the store. From 2.0 one release
 number covers both stores.
 
+## Service (2026-10-29)
+
+- **Downloads by request.** Whole record files (samples, cycles or segments, meta ...) leave Batang only through the
+  hub's new **다운로드** tab (https://batanghub.com/#/downloads), under 내 공간: put datasets, cells, devices or search
+  results in a cart, acknowledge the datasets' licences and send a request with its purpose. The owner approves it
+  (or rejects it with a reason). An approved request has a grant id and links valid for 7 days and 3 downloads per
+  file; the bytes come straight from storage, and the tab offers a `urls.txt` for `wget`.
+- **MCP and the Python package are query-only**: `info`, `find_records`, `describe`, `stats`, `cycles`,
+  `cycle_samples`, `schema`, `query`. Query results still come as links. The MCP `download` tool is gone, and so is
+  `download()` of the package: both answer with the address of the 다운로드 tab.
+- Python package 0.3.0: `batang download --grant <id> --to <folder> [--jobs 8]` and `batang.fetch_grant(id, folder)`
+  fetch an approved request in parallel, resume interrupted files (a resume does not use up a download), check every
+  file's size, skip finished ones, and write `<folder>/<release>/<dataset>/<id>/<file>` with `index.json` and
+  `LICENSES.json`, so `batang.open(<folder>/<release>)` and the local-first reads use them. `Selection.download()` /
+  `size()` and the `columns=` cut of samples files are gone; folders written by 0.2 are read as before.
+- MCP bridge 0.4.0: `save_link` saves query result links (`/mcp/results/...`) only; a `download` call answers with
+  the address of the 다운로드 tab.
+- There is no HTTP API for scripts any more: programs use the MCP endpoint `https://api.batanghub.com/mcp` (or the
+  Python package, which calls it).
+- The daily quota for query results is 2 GB per person (was 200 GB); the maintainer can raise it for a person.
+
 ## Service (2026-10-28)
 
 - The site moved to **https://batanghub.com**. Programs use **https://api.batanghub.com**: the MCP endpoint is
