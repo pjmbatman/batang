@@ -92,7 +92,7 @@ data itself: it searches the catalog, aggregates on the server and reads cycles 
 anything the tools do not cover. Large query results come back as links instead of filling the conversation. The
 tools query; they do not hand out whole record files (those come from the 다운로드 tab).
 
-**Remote (recommended).** Nothing to install; the assistant signs you in through the browser.
+Nothing to install; the assistant signs you in through the browser.
 
 ```bash
 # Claude Code
@@ -100,16 +100,6 @@ claude mcp add --transport http batang https://api.batanghub.com/mcp
 ```
 
 On claude.ai or Claude Desktop: Settings → Connectors → Add custom connector → `https://api.batanghub.com/mcp`.
-
-**Local bridge.** [`mcp/`](mcp) runs on your computer and forwards to the same server, so it always has the same
-tools; it adds sign-in by browser approval and saving query result links to your disk. Needs
-[uv](https://docs.astral.sh/uv/getting-started/installation/).
-
-```bash
-claude mcp add batang -- uvx --from "git+https://github.com/pjmbatman/batang#subdirectory=mcp" batang-mcp
-```
-
-Then ask the assistant to log in to Batang (`login`): open the link it shows and approve the code.
 
 **Tools**
 
@@ -123,12 +113,12 @@ Then ask the assistant to log in to Batang (`login`): open the link it shows and
 | `cycle_samples` | the samples of one cycle or segment, at full resolution or reduced |
 | `schema` | what a variable means, its unit and column name |
 | `query` | any read-only SQL (`SELECT`) over the views `cells`, `devices`, `cycles`, `segments`, `samples`, `device_samples` and the macros `cycle_samples()`, `segment_samples()` |
-| `login`, `whoami`, `save_link` | local bridge only: sign in, check the sign-in, save a query result link to a file |
+| `my_downloads` | your download requests and their status; for an approved one, the command that fetches it on your own computer (`batang download --grant <id> --to <folder>`), which an assistant with a shell, such as Claude Code, can run for you |
 
 Tools take and return the 2.0 column names of [DATA_FORMAT.md](DATA_FORMAT.md); for release 2.0 they also accept the
 1.x names in arguments. Use is limited per person (requests per minute, query time, and 2 GB of query results per day
 unless the maintainer raised it for you), not per tool. Check each dataset's `license` and `commercial_use` before you
-use a result, and cite the original source. The bridge in [`mcp/`](mcp) is MIT-licensed.
+use a result, and cite the original source.
 
 ### Option 3: use the standardized data yourself
 
@@ -222,7 +212,7 @@ If you use Batang, please cite it **and the original datasets you use** (see [DA
   and ask the authors before anything beyond that; the UL_PUR records are access-restricted by their authors.
 - TURKU (CC BY-NC 3.0) and TUDA_LFP_FIELD (CC BY-NC 4.0) are non-commercial; MCMASTER_30T, MCMASTER_A123 (CC BY-SA
   4.0), OXFORD_DEG1, OXFORD_ENERGY_TRADING and OXFORD_PATH (ODbL) are share-alike.
-- **This documentation**: [CC BY 4.0](LICENSE). The MCP bridge in [`mcp/`](mcp): MIT.
+- **This documentation**: [CC BY 4.0](LICENSE). The Python package in [`client/`](client): MIT.
 
 ## Acknowledgements
 
