@@ -6,8 +6,10 @@ call, so it always matches the remote server. It adds only what needs your compu
 
     login      sign in through your browser (device authorization); the token is kept in ~/.config/batang/token
     whoami     the signed-in account and the token's expiry
-    save_link  download a result or file link from a remote answer (/mcp/results/..., /mcp/files/...) to a local path
+    save_link  save a query result link from a remote answer (/mcp/results/...) to a local path
 
+The tools query; they do not hand out whole record files. Those are requested in the hub's 다운로드 tab
+(https://batanghub.com/#/downloads) and fetched with the Python package (`batang download --grant <id>`).
 Read-only. Access needs a Batang account (sign up at https://batanghub.com/signup).
 
 Environment: BATANG_MCP_URL (default https://api.batanghub.com/mcp), BATANG_TOKEN (a token, instead of the file).
@@ -34,11 +36,14 @@ MCP_URL = os.environ.get("BATANG_MCP_URL", "https://api.batanghub.com/mcp").rstr
 UA = "batang-mcp"   # urllib's own User-Agent is refused by the site's CDN (Cloudflare 1010)
 TOKEN_FILE = os.path.join(os.path.expanduser("~"), ".config", "batang", "token")
 CLIENT_NAME = "Batang MCP (로컬 브리지)"
+DOWNLOADS = ("원본 파일은 허브의 다운로드 탭에서 신청하세요: https://batanghub.com/#/downloads (Record files are requested "
+             "in the hub's 다운로드 tab; once approved, `batang download --grant <id> --to <folder>` fetches them.)")
 
 BASE_INSTRUCTIONS = """Batang local bridge: the tools of the Batang remote MCP server (battery
-database: ageing and fault data in one schema), read-only. If only login, whoami and save_link are listed, call
-login() first: it prints a link and a code to approve in the browser, then the Batang tools appear. When an answer
-contains a link (/mcp/results/... or /mcp/files/...), save_link(url, path) downloads it to this computer."""
+database: ageing and fault data in one schema), read-only and query-only. If only login, whoami and save_link are
+listed, call login() first: it prints a link and a code to approve in the browser, then the Batang tools appear. When
+an answer contains a query result link (/mcp/results/...), save_link(url, path) saves it on this computer. Whole record
+files are not handed out here: they are requested in the hub's 다운로드 tab (https://batanghub.com/#/downloads)."""
 
 
 # --------------------------------------------------------------------------- token
@@ -169,14 +174,15 @@ def _text(t, error=False):
 LOCAL_TOOLS = [
     types.Tool(name="login",
                description="Sign in to Batang through your browser (device authorization). Prints a link and a code; "
-                           "approve them with your Yonsei Google account, then the Batang tools appear. "
+                           "approve them with your Google account, then the Batang tools appear. "
                            "브라우저에서 승인해 로그인합니다. The token lasts 7 days.",
                input_schema={"type": "object", "properties": {"wait_seconds": {"type": "integer", "default": 300}}}),
     types.Tool(name="whoami", description="Whether this computer is signed in to Batang, where the token comes from, and when it expires.",
                input_schema={"type": "object", "properties": {}}),
     types.Tool(name="save_link",
-               description="Download a link from a Batang answer (/mcp/results/... or /mcp/files/...) to a file on this "
-                           "computer and return its path and size. 결과·다운로드 링크를 이 컴퓨터에 저장합니다.",
+               description="Save a query result link from a Batang answer (/mcp/results/...) to a file on this computer "
+                           "and return its path and size. 질의 결과 링크를 이 컴퓨터에 저장합니다. Record files are "
+                           "requested in the hub's 다운로드 tab instead.",
                input_schema={"type": "object", "required": ["url", "path"],
                              "properties": {"url": {"type": "string"}, "path": {"type": "string"}}}),
 ]
@@ -218,8 +224,8 @@ async def _save_link(url, path):
     token, _ = _read_token()
     if not token:
         return _text("login first (call login)", True)
-    if not str(url).startswith(_origin(MCP_URL) + "/mcp/"):
-        return _text("only links from this Batang server (/mcp/results/..., /mcp/files/...) are saved", True)
+    if not str(url).startswith(_origin(MCP_URL) + "/mcp/results/"):
+        return _text("only query result links of this Batang server (/mcp/results/...) are saved. " + DOWNLOADS, True)
     dest = os.path.abspath(os.path.expanduser(str(path)))
     os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
 
@@ -267,7 +273,7 @@ async def _whoami(remote):
 # --------------------------------------------------------------------------- the bridge
 
 def build(remote, instructions):
-    local = {t.name for t in LOCAL_TOOLS}
+    local = {t.name for t in LOCAL_TOOLS} | {"download"}       # record files: the hub's 다운로드 tab, not a tool
 
     async def list_tools(ctx, params):
         if remote.tools is None:
@@ -295,6 +301,8 @@ def build(remote, instructions):
             return await _whoami(remote)
         if name == "save_link":
             return await _save_link(args.get("url", ""), args.get("path", ""))
+        if name == "download":
+            return _text(DOWNLOADS, True)
         try:
             return await remote.call(name, args)
         except Exception as e:
@@ -316,7 +324,7 @@ async def amain():
     try:
         await remote.refresh()
         if remote.instructions:
-            instructions = remote.instructions + "\n\nLocal bridge: login, whoami, save_link(url, path) for links in answers."
+            instructions = remote.instructions + "\n\nLocal bridge: login, whoami, save_link(url, path) for query result links."
     except Exception as e:
         if not (_unauthorized(e) or _token_refused()):
             print(f"Batang: server not reachable now ({e}); its tools appear once it is", file=sys.stderr, flush=True)

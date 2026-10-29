@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "batang-mcp"
-version = "0.3.1"
+version = "0.4.0"
 description = "Local MCP bridge to the Batang remote MCP server (standardized battery ageing and fault data)"
 readme = "README.md"
 requires-python = ">=3.10"
