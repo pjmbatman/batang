@@ -11,15 +11,13 @@ number covers both stores.
   (or rejects it with a reason). An approved request has a grant id and links valid for 7 days and 3 downloads per
   file; the bytes come straight from storage, and the tab offers a `urls.txt` for `wget`.
 - **MCP and the Python package are query-only**: `info`, `find_records`, `describe`, `stats`, `cycles`,
-  `cycle_samples`, `schema`, `query`. Query results still come as links. The MCP `download` tool is gone, and so is
-  `download()` of the package: both answer with the address of the 다운로드 tab.
+  `cycle_samples`, `schema`, `query`. Query results still come as links. The MCP `download` tool is removed, and so are
+  `download()` and `Selection.download()` / `size()` of the package.
 - Python package 0.3.0: `batang download --grant <id> --to <folder> [--jobs 8]` and `batang.fetch_grant(id, folder)`
   fetch an approved request in parallel, resume interrupted files (a resume does not use up a download), check every
   file's size, skip finished ones, and write `<folder>/<release>/<dataset>/<id>/<file>` with `index.json` and
-  `LICENSES.json`, so `batang.open(<folder>/<release>)` and the local-first reads use them. `Selection.download()` /
-  `size()` and the `columns=` cut of samples files are gone; folders written by 0.2 are read as before.
-- MCP bridge 0.4.0: `save_link` saves query result links (`/mcp/results/...`) only; a `download` call answers with
-  the address of the 다운로드 tab.
+  `LICENSES.json`, so `batang.open(<folder>/<release>)` and the local-first reads use them. The `columns=` cut of samples files is gone; folders written by 0.2 are read as before.
+- MCP bridge 0.4.0: `save_link` saves query result links (`/mcp/results/...`) only.
 - There is no HTTP API for scripts any more: programs use the MCP endpoint `https://api.batanghub.com/mcp` (or the
   Python package, which calls it).
 - The daily quota for query results is 2 GB per person (was 200 GB); the maintainer can raise it for a person.

@@ -415,10 +415,6 @@ class Client:
         finally:
             self._local = None
 
-    def download(self, *args, **kwargs):
-        """Removed: record files come from the hub's 다운로드 tab (request, approval, then fetch_grant())."""
-        raise BatangError("moved", grants.MOVED)
-
     def download_catalog(self):
         """Store the record catalog of this release in the cache (for find_records() offline). Returns its path."""
         df = self.find_records()
@@ -463,10 +459,3 @@ class Selection:
         if j.get("release") and client.release != j["release"]:
             raise BatangError("release", f"the selection is from release {j['release']}, the client uses {client.release}")
         return cls(client, j["ids"], filters=j.get("filters"), release=j.get("release"))
-
-    def download(self, *args, **kwargs):
-        """Removed: request the records' files in the hub's 다운로드 tab, then fetch_grant() the approved request."""
-        raise BatangError("moved", grants.MOVED)
-
-    def size(self, *args, **kwargs):
-        raise BatangError("moved", grants.MOVED)

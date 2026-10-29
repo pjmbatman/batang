@@ -27,8 +27,7 @@ unchanged.
 The tools are query-only: they do not hand out whole record files. Those are requested in the hub's 다운로드 tab
 (https://batanghub.com/#/downloads); once the owner approves a request, the Python package fetches it
 (`batang download --grant <id> --to <folder>`, see [client/README.md](../client/README.md#download-files)). Version
-0.4 of the bridge drops what saved record files: `save_link` takes query result links only, and a `download` call
-answers with the address of the 다운로드 tab.
+0.4 of the bridge drops what saved record files: `save_link` takes query result links only.
 
 ## Two ways to connect
 

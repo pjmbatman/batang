@@ -16,7 +16,7 @@ import os
 import sys
 
 from . import AuthError, BatangError, connect, validate
-from .grants import MOVED, human_size
+from .grants import human_size
 
 
 def _kv(pairs):
@@ -59,11 +59,9 @@ def _main(argv=None):
     s = sub.add_parser("schema")
     s.add_argument("term", nargs="?")
     d = sub.add_parser("download", help="fetch the files of an approved request of the hub's 다운로드 tab")
-    d.add_argument("--grant", default=None, help="the request's grant id (G-yyyymmdd-XXXX)")
+    d.add_argument("--grant", required=True, help="the request's grant id (G-yyyymmdd-XXXX)")
     d.add_argument("--to", default=None, help="folder; files go to <to>/<release>/<dataset>/<id>/ (default: the cache)")
     d.add_argument("--jobs", type=int, default=8, help="files downloaded at a time")
-    d.add_argument("what", nargs="*", help=argparse.SUPPRESS)                  # record ids of client 0.2
-    d.add_argument("--filter", action="append", help=argparse.SUPPRESS)
     sub.add_parser("ls")
     v = sub.add_parser("validate")
     v.add_argument("path")
@@ -73,8 +71,6 @@ def _main(argv=None):
         r = validate(a.path)
         print(json.dumps(r, ensure_ascii=False, indent=1))
         return 0 if r["ok"] else 1
-    if a.cmd == "download" and not a.grant:
-        raise BatangError("moved", MOVED)
     db = connect(url=a.url, cache=a.cache, login=True)
     if a.cmd == "login":
         db.login()

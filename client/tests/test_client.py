@@ -161,9 +161,7 @@ class Local(Base):
         sel.save(p)
         again = batang.Selection.load(p, db)
         self.assertEqual(again.ids, ["SYN_A"])
-        with self.assertRaises(batang.BatangError) as cm:                 # files come from the 다운로드 tab
-            again.download()
-        self.assertEqual(cm.exception.code, "moved")
+        self.assertFalse(hasattr(again, "download"))                       # files come from the 다운로드 tab
 
     def test_local_query(self):
         try:
@@ -308,15 +306,9 @@ class Grants(Base):
         self.assertEqual(code, 0, err.getvalue())
         self.assertIn("3 files", out.getvalue())
         self.assertTrue(os.path.isfile(os.path.join(to, "2.0", "SYN", "SYN_B", "samples.parquet")))
-        err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            code = cli.main(["--url", self.url, "--cache", self.cache, "download", "SYN_A"])
-        self.assertEqual(code, 1)
-        self.assertIn("https://batanghub.com/#/downloads", err.getvalue())
-        with self.assertRaises(batang.BatangError) as cm:
-            self.client().download(["SYN_A"])
-        self.assertEqual(cm.exception.code, "moved")
-        self.assertIn("batang download --grant", cm.exception.message)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            cli.main(["--url", self.url, "--cache", self.cache, "download", "SYN_A"])     # --grant is required
+        self.assertFalse(hasattr(self.client(), "download"))
         self.assertNotIn("download", [c[0] for c in self.fake.calls])
 
 
