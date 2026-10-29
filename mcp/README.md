@@ -11,10 +11,10 @@ matches the server. It adds three local tools:
 |---|---|
 | `login` | sign in through your browser: it opens a link and shows a code to approve with your account; the token (7 days) is kept in `~/.config/batang/token` (readable only by you) |
 | `whoami` | whether you are signed in and when the token expires |
-| `save_link` | save a result or file link from an answer (`/mcp/results/…`, `/mcp/files/…`) to a path on your computer |
+| `save_link` | save a query result link from an answer (`/mcp/results/…`) to a path on your computer |
 
-The server's tools (`info`, `find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `schema`, `query`,
-`download`) read Batang release 2.0 and use the column, file and view names of schema 2.0
+The server's tools (`info`, `find_records`, `describe`, `stats`, `cycles`, `cycle_samples`, `schema`, `query`) query
+Batang release 2.0 and use the column, file and view names of schema 2.0
 ([DATA_FORMAT.md](../DATA_FORMAT.md)): for example `cycle_time_s`, `voltage_min_v`, `efc`, `size_code`, `device_id`,
 the SQL views `cells`, `devices`, `cycles`, `segments`, `samples`, `device_samples` and the macros
 `cycle_samples()`, `segment_samples()`. `find_records` takes `kind` `cell`, `device` or `session`; filters are
@@ -22,7 +22,13 @@ the SQL views `cells`, `devices`, `cycles`, `segments`, `samples`, `device_sampl
 (`cycles`, `efc`, `soh`) with `limit` for a first look; `stats` takes `grain` (`record`, `cycle`, `segment`). For release 2.0 the
 server also accepts the 1.x names in tool arguments (`task`, `cell_format`, `unit_level`, `domain`,
 `stats(level="cycle")`, `v_min` ...), translates them and lists them under `renamed` in the answer. The bridge forwards everything
-unchanged, so version 0.3 differs from 0.2 only in this documentation; both work with release 2.0.
+unchanged.
+
+The tools are query-only: they do not hand out whole record files. Those are requested in the hub's 다운로드 tab
+(https://batanghub.com/#/downloads); once the owner approves a request, the Python package fetches it
+(`batang download --grant <id> --to <folder>`, see [client/README.md](../client/README.md#download-files)). Version
+0.4 of the bridge drops what saved record files: `save_link` takes query result links only, and a `download` call
+answers with the address of the 다운로드 tab.
 
 ## Two ways to connect
 
@@ -57,7 +63,8 @@ Then ask the assistant to log in to Batang. When the token expires, the next cal
 ## Access and limits
 
 - A Batang account: sign up at https://batanghub.com/signup (Yonsei accounts at once; other researchers apply there).
-- Read-only. Use is limited per person (requests per minute, query time and data per day), not per tool.
+- Read-only and query-only. Use is limited per person (requests per minute, query time, and 2 GB of query results per
+  day unless the maintainer raised it for you), not per tool.
 - Each dataset keeps its own licence: check `license` and `commercial_use` and cite the original source.
 
 Environment: `BATANG_MCP_URL` (default `https://api.batanghub.com/mcp`), `BATANG_TOKEN` (a token to use instead of
