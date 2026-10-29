@@ -10,8 +10,8 @@ abstract: >-
   Parquet schema (unified units, cycle segmentation, cycle kinds, a single SOH
   definition), and builds on it physics-based cell simulation (PyBaMM) and AI
   modeling (data preprocessing, block-built models, GPU training and
-  evaluation), offered through a web hub, a Python package, an HTTP API and a
-  remote MCP server.
+  evaluation), offered through a web hub, a Python package and a remote MCP
+  server.
 type: software
 authors:
   - family-names: Park
