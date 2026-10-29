@@ -17,7 +17,9 @@ number covers both stores.
   fetch an approved request in parallel, resume interrupted files (a resume does not use up a download), check every
   file's size, skip finished ones, and write `<folder>/<release>/<dataset>/<id>/<file>` with `index.json` and
   `LICENSES.json`, so `batang.open(<folder>/<release>)` and the local-first reads use them. The `columns=` cut of samples files is gone; folders written by 0.2 are read as before.
-- MCP bridge 0.4.0: `save_link` saves query result links (`/mcp/results/...`) only.
+- The local MCP bridge (`mcp/`, `batang-mcp`) is removed: the remote connector `https://api.batanghub.com/mcp` is the
+  one way to connect an assistant. Its new `my_downloads` tool lists your requests and, for an approved one, the
+  command that fetches it on your computer.
 - There is no HTTP API for scripts any more: programs use the MCP endpoint `https://api.batanghub.com/mcp` (or the
   Python package, which calls it).
 - The daily quota for query results is 2 GB per person (was 200 GB); the maintainer can raise it for a person.
