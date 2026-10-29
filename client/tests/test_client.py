@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import batang                                     # noqa: E402
 from batang import _auth                          # noqa: E402
-from fakeserver import TOKEN, Fake, make_cell, serve  # noqa: E402
+from batang import cli                            # noqa: E402
+from fakeserver import OTHER, TOKEN, Fake, make_cell, serve  # noqa: E402
 
 
 class Base(unittest.TestCase):
@@ -43,6 +44,11 @@ class Base(unittest.TestCase):
 
     def tools(self):
         return [c[0] for c in self.fake.calls]
+
+    def fetch(self, db, ids, **kw):
+        """Approve a grant of these records on the fake server and fetch it into the cache, quietly."""
+        with contextlib.redirect_stderr(io.StringIO()):
+            return db.fetch_grant(self.fake.grant(ids), **kw)
 
 
 class Auth(Base):
@@ -94,8 +100,9 @@ class Remote(Base):
         db = self.client()
         waits = []
         db.t.sleep = waits.append
+        self.fake.big_rows = 2
         self.fake.rate_limited = 2
-        self.assertEqual(len(db.download(["SYN_A"])), 3)
+        self.assertEqual(len(db.find_records()), 2)                       # the spilled answer's link answered 429 twice
         self.assertEqual(waits, [4, 4])
 
     def test_size_guard(self):
@@ -110,14 +117,9 @@ class Remote(Base):
 class Local(Base):
     def test_download_then_local_first(self):
         db = self.client()
-        err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            paths = db.download(["SYN_A"])
+        paths = self.fetch(db, ["SYN_A"])
         self.assertEqual(len(paths), 3)
         self.assertTrue(all(os.path.isfile(p) for p in paths))
-        lic = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(paths[0]))), "LICENSES.json")))
-        self.assertEqual(lic["SYN"]["commercial_use"], "allowed")
-        self.assertIn("SYN: CC-BY-4.0", err.getvalue())
         before = len(self.fake.calls)
         df = db.cycles(["SYN_A"], kind="aging", exclude_flags=True)
         self.assertEqual(df.attrs["source"], "local")
@@ -132,30 +134,11 @@ class Local(Base):
         mixed = db.cycles(["SYN_A", "SYN_B"])
         self.assertEqual(mixed.attrs["source"], "mixed")
         self.assertEqual(sorted(set(mixed["id"])), ["SYN_A", "SYN_B"])
-        again = db.download(["SYN_A"])                                    # same sizes: nothing rewritten
-        self.assertEqual(again, paths)
-        sel = [n for n in os.listdir(os.path.join(self.cache, "2.0", "selections"))]
-        self.assertTrue(sel)
 
-    def test_column_cut_download(self):
-        db = self.client()
-        db.download(["SYN_B"], columns=["voltage_v"])
-        st = batang.open(os.path.join(self.cache, "2.0"))
-        cols = st.record("SYN_B").columns()
-        self.assertIn("voltage_v", cols)
-        self.assertNotIn("current_a", cols)
-        import pyarrow.parquet as pq
-        cut = os.path.join(self.cache, "2.0", "SYN", "SYN_B", "samples.parquet")
-        self.assertEqual(pq.ParquetFile(cut).num_row_groups, 4)                # row groups kept (one per cycle)
-        rep = batang.validate(os.path.dirname(cut))
-        self.assertTrue(rep["ok"], rep)
-        self.assertTrue(any("not downloaded" in w for w in rep["warnings"]))
-        self.assertEqual(db.cycle_samples("SYN_B", 0, columns=["voltage_v"]).attrs["source"], "local")
-        self.assertEqual(db.cycle_samples("SYN_B", 0, columns=["current_a"]).attrs["source"], "remote")
 
     def test_offline(self):
         db = self.client()
-        db.download(["SYN_A"])
+        self.fetch(db, ["SYN_A"])
         db.download_catalog()
         off = batang.connect(url="http://127.0.0.1:9/mcp", cache=self.cache, offline=True, login=False)
         self.assertEqual(off.release, "2.0")
@@ -174,12 +157,13 @@ class Local(Base):
         db = self.client()
         sel = db.select(cathode_family="LFP")
         self.assertEqual(sel.ids, ["SYN_A"])
-        self.assertGreater(sel.size(), 0)
         p = os.path.join(self.tmp.name, "sel.json")
         sel.save(p)
         again = batang.Selection.load(p, db)
         self.assertEqual(again.ids, ["SYN_A"])
-        self.assertEqual(len(again.download()), 3)
+        with self.assertRaises(batang.BatangError) as cm:                 # files come from the 다운로드 tab
+            again.download()
+        self.assertEqual(cm.exception.code, "moved")
 
     def test_local_query(self):
         try:
@@ -187,7 +171,7 @@ class Local(Base):
         except ImportError:
             self.skipTest("duckdb not installed")
         db = self.client()
-        db.download(["SYN_A", "SYN_B"])
+        self.fetch(db, ["SYN_A", "SYN_B"])
         df = db.query("SELECT cell_id, count(*) n FROM cycles GROUP BY 1 ORDER BY 1", local=True)
         self.assertEqual(list(df["n"]), [4, 4])
         s = db.query("SELECT count(*) n FROM cycle_samples('SYN_A', 2)", local=True)
@@ -195,6 +179,145 @@ class Local(Base):
         s = db.query("SELECT count(*) n FROM cycle_samples('SYN_A')", local=True)
         self.assertEqual(int(s["n"][0]), 200)
         self.assertEqual(int(db.query("SELECT count(*) n FROM samples", local=True)["n"][0]), 400)
+
+
+class Grants(Base):
+    """Approved downloads: the manifest with the login token, then the files straight from their links."""
+
+    def quiet(self, fn, *a, **kw):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            return fn(*a, **kw), err.getvalue()
+
+    def test_parallel_download_licences_and_skip(self):
+        db = self.client()
+        g = self.fake.grant(["SYN_A", "SYN_B"])
+        self.fake.bucket_delay = 0.2
+        to = os.path.join(self.tmp.name, "data")
+        paths, err = self.quiet(batang.fetch_grant, g, to, jobs=4, url=self.url, login=False)
+        self.assertEqual(len(paths), 6)
+        self.assertGreater(self.fake.max_active, 1)                               # files fetched side by side
+        for p in paths:                                                          # <to>/<release>/<dataset>/<id>/<file>
+            rel = os.path.relpath(p, os.path.join(to, "2.0"))
+            with open(p, "rb") as a, open(os.path.join(self.store, rel), "rb") as b:
+                self.assertEqual(a.read(), b.read())
+        st = batang.open(os.path.join(to, "2.0"))
+        self.assertEqual(st.ids, ["SYN_A", "SYN_B"])
+        self.assertEqual(st.record("SYN_B").kind, "cell")
+        self.assertEqual(len(st.record("SYN_B").cycles()), 4)
+        lic = json.load(open(os.path.join(to, "2.0", "LICENSES.json")))
+        self.assertEqual(lic["SYN"], {"license": "CC-BY-4.0", "commercial_use": "allowed", "cite": "10.0/syn"})
+        self.assertEqual(err.count("SYN: CC-BY-4.0 (commercial use allowed); cite 10.0/syn"), 1)
+        rec = json.load(open(os.path.join(to, "2.0", "selections", f"grant-{g}.json")))
+        self.assertEqual(len(rec["files"]), 6)
+        self.assertNotIn(self.fake.grants[g]["token"], json.dumps(rec))           # the secret links are not kept
+        self.assertEqual(set(self.fake.grants[g]["left"].values()), {2})          # one download used per file
+        self.assertTrue(all(r is None for _, _, r in self.fake.dl_log))
+        n = len(self.fake.dl_log)
+        again, err = self.quiet(db.fetch_grant, g, to)                            # all there: nothing asked again
+        self.assertEqual(sorted(again), sorted(paths))
+        self.assertEqual(len(self.fake.dl_log), n)
+        self.assertNotIn("CC-BY-4.0", err)                                        # each licence said once
+        self.assertIn("0 downloaded, 6 already there", err)
+
+    def test_resume_does_not_use_a_download(self):
+        db = self.client()
+        g = self.fake.grant(["SYN_A"], files=("samples.parquet", "cycles.parquet"))
+        src = os.path.join(self.store, "SYN", "SYN_A", "samples.parquet")
+        dest = os.path.join(self.cache, "2.0", "SYN", "SYN_A", "samples.parquet")
+        os.makedirs(os.path.dirname(dest))
+        with open(src, "rb") as f:
+            data = f.read()
+        with open(dest + ".part", "wb") as f:                                    # left by an interrupted run
+            f.write(data[:1000])
+        self.fake.cut["SYN/SYN_A/cycles.parquet"] = 500                          # this one drops the connection once
+        db.t.sleep = lambda s: None
+        self.quiet(db.fetch_grant, g)
+        with open(dest, "rb") as f:
+            self.assertEqual(f.read(), data)
+        self.assertFalse(os.path.exists(dest + ".part"))
+        log = {(name, r) for _, name, r in self.fake.dl_log}
+        self.assertEqual(log, {("SYN/SYN_A/samples.parquet", "bytes=1000-"), ("SYN/SYN_A/cycles.parquet", None),
+                               ("SYN/SYN_A/cycles.parquet", "bytes=500-")})
+        self.assertEqual(self.fake.grants[g]["left"], {"SYN/SYN_A/samples.parquet": 3, "SYN/SYN_A/cycles.parquet": 2})
+        cyc = os.path.join(self.store, "SYN", "SYN_A", "cycles.parquet")
+        with open(cyc, "rb") as a, open(os.path.join(os.path.dirname(dest), "cycles.parquet"), "rb") as b:
+            self.assertEqual(a.read(), b.read())
+
+    def test_size_check(self):
+        db = self.client()
+        for delta in (-5, 5):                                    # the manifest lists fewer / more bytes than arrive
+            g = self.fake.grant(["SYN_A"], files=("meta.json",), size_delta=delta)
+            with self.assertRaises(batang.BatangError) as cm:
+                self.quiet(db.fetch_grant, g)
+            self.assertEqual(cm.exception.code, "incomplete")
+            self.assertIn("SYN/SYN_A/meta.json", cm.exception.message)
+            dest = os.path.join(self.cache, "2.0", "SYN", "SYN_A", "meta.json")
+            self.assertFalse(os.path.exists(dest))
+            self.assertFalse(os.path.exists(dest + ".part"))
+
+    def test_refusals(self):
+        db = self.client()
+        for status, reason, word in (("pending", None, "waiting"), ("rejected", "목적이 불분명합니다", "목적이 불분명합니다"),
+                                     ("revoked", "회수", "revoked"), ("expired", None, "expired")):
+            with self.assertRaises(batang.BatangError) as cm:                      # 409 with the status and reason
+                db.fetch_grant(self.fake.grant(["SYN_A"], status=status, reason=reason))
+            self.assertEqual(cm.exception.code, status)
+            self.assertIn(word, cm.exception.message)
+        g = self.fake.grant(["SYN_A"])
+        os.environ["BATANG_TOKEN"] = OTHER
+        with self.assertRaises(batang.BatangError) as cm:                          # someone else's grant: 403
+            self.client().fetch_grant(g)
+        self.assertEqual(cm.exception.code, "forbidden")
+        os.environ["BATANG_TOKEN"] = TOKEN
+        with self.assertRaises(batang.BatangError) as cm:
+            db.fetch_grant("G-20261029-ZZZZ")
+        self.assertEqual(cm.exception.code, "not_found")
+        with self.assertRaises(batang.BatangError) as cm:
+            db.fetch_grant("../../etc")
+        self.assertEqual(cm.exception.code, "bad_request")
+        os.environ["BATANG_TOKEN"] = "btg_wrong"
+        with self.assertRaises(batang.AuthError):
+            self.client().fetch_grant(g)
+        self.assertEqual(self.fake.dl_log, [])
+
+    def test_used_up_and_revoked_links_are_410(self):
+        db = self.client()
+        g = self.fake.grant(["SYN_A"], per_file=1)
+        paths = self.quiet(db.fetch_grant, g)[0]
+        os.remove(paths[0])
+        with self.assertRaises(batang.BatangError) as cm:                          # the one download is used
+            self.quiet(db.fetch_grant, g)
+        self.assertEqual(cm.exception.code, "incomplete")
+        self.assertIn("1 of 3 files failed", cm.exception.message)
+        self.assertIn("다운로드 횟수", cm.exception.message)
+        base = f"http://127.0.0.1:{self.srv.server_port}"
+        man = self.fake.manifest(g, base)
+        self.fake.grants[g]["status"] = "revoked"                                  # revoked after the manifest was read
+        with self.assertRaises(batang.BatangError) as cm:
+            batang.grants.fetch_file(man["files"][0], os.path.join(self.tmp.name, "x"))
+        self.assertEqual(cm.exception.code, "gone")
+
+    def test_cli_and_the_removed_download(self):
+        g = self.fake.grant(["SYN_B"])
+        to = os.path.join(self.tmp.name, "cli")
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = cli.main(["--url", self.url, "--cache", self.cache, "download", "--grant", g.lower(), "--to", to,
+                             "--jobs", "2"])
+        self.assertEqual(code, 0, err.getvalue())
+        self.assertIn("3 files", out.getvalue())
+        self.assertTrue(os.path.isfile(os.path.join(to, "2.0", "SYN", "SYN_B", "samples.parquet")))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = cli.main(["--url", self.url, "--cache", self.cache, "download", "SYN_A"])
+        self.assertEqual(code, 1)
+        self.assertIn("https://batanghub.com/#/downloads", err.getvalue())
+        with self.assertRaises(batang.BatangError) as cm:
+            self.client().download(["SYN_A"])
+        self.assertEqual(cm.exception.code, "moved")
+        self.assertIn("batang download --grant", cm.exception.message)
+        self.assertNotIn("download", [c[0] for c in self.fake.calls])
 
 
 class Tools(Base):
@@ -213,7 +336,7 @@ class Tools(Base):
         self.assertTrue(any("n_samples" in e for e in rep["errors"]))
         self.assertTrue(any("cycle_kind" in e for e in rep["errors"]))
         db = self.client()
-        db.download(["SYN_A"])
+        self.fetch(db, ["SYN_A"])
         st = db.local
         w = batang.CycleWindows(st, ["SYN_A"], columns=["voltage_v", "current_a"], window=20, target="soh",
                                 kind="aging", complete=False, exclude_flags=False)
@@ -247,8 +370,7 @@ class Legacy(Base):
             warnings.simplefilter("always")
             db._call("stats", level="cycle")
         self.assertTrue(any("'level'" in str(x.message) and "grain" in str(x.message) for x in w))
-        db.download(["SYN_A"], files=["timeseries", "cycles"])
-        self.assertEqual([a for n, a in self.fake.calls if n == "download"][-1]["files"], ["samples", "cycles"])
+        self.fetch(db, ["SYN_A"])                                         # 1.x names on local files too
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             cyc = db.cycles(["SYN_A"], columns=["v_min", "equiv_full_cycles"], where=[["v_min", "<", 2.8]])

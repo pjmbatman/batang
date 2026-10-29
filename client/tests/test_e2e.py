@@ -4,6 +4,8 @@
     BATANG_E2E_AUTH_URL  the login service, e.g. http://localhost:4192 (default: the MCP endpoint's origin)
     BATANG_E2E_APPROVE   a shell command that approves a device code ({code} is replaced); without it the test uses
                          BATANG_TOKEN
+    BATANG_E2E_GRANT     an approved download grant of STROEBL_S1_k01_01 (samples and cycles) of that account; without
+                         it the download part is skipped
 """
 import io
 import os
@@ -50,7 +52,12 @@ class EndToEnd(unittest.TestCase):
             self.assertEqual(cyc.attrs["source"], "remote")
             q = db.query("SELECT count(*) AS n FROM cells WHERE cathode_family = 'LFP'")
             self.assertGreater(int(q["n"][0]), 0)
-            paths = db.download([cid], columns=["voltage_v", "current_a"])
+            with self.assertRaises(batang.BatangError):
+                db.download([cid])
+            grant = os.environ.get("BATANG_E2E_GRANT")
+            if not grant:
+                return
+            paths = db.fetch_grant(grant)
             self.assertTrue(any(p.endswith("samples.parquet") for p in paths))
             s = db.cycle_samples(cid, 10, columns=["voltage_v"])
             self.assertEqual(s.attrs["source"], "local")
