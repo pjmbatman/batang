@@ -273,7 +273,7 @@ async def _whoami(remote):
 # --------------------------------------------------------------------------- the bridge
 
 def build(remote, instructions):
-    local = {t.name for t in LOCAL_TOOLS} | {"download"}       # record files: the hub's 다운로드 tab, not a tool
+    local = {t.name for t in LOCAL_TOOLS}
 
     async def list_tools(ctx, params):
         if remote.tools is None:
@@ -301,8 +301,6 @@ def build(remote, instructions):
             return await _whoami(remote)
         if name == "save_link":
             return await _save_link(args.get("url", ""), args.get("path", ""))
-        if name == "download":
-            return _text(DOWNLOADS, True)
         try:
             return await remote.call(name, args)
         except Exception as e:

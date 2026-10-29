@@ -33,9 +33,6 @@ from ._names import SAMPLES
 from ._transport import UA, BatangError
 
 DOWNLOADS_TAB = "https://batanghub.com/#/downloads"
-MOVED = (f"record files are requested in the hub's 다운로드 tab ({DOWNLOADS_TAB}); once the request is approved, "
-         "`batang download --grant <id> --to <folder>` (or batang.fetch_grant(<id>, <folder>)) fetches them. "
-         "Query results still come as links in the answers.")
 GRANT_ID = re.compile(r"^G-\d{8}-[A-Z0-9]{4}$")
 TRIES = 6                  # requests per file before giving up (a resume after a dropped connection is one more)
 CHUNK = 1 << 20
