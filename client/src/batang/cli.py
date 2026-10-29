@@ -4,17 +4,19 @@
     batang info
     batang find tasks=aging cathode_family=LFP [--limit 20] [--csv out.csv]
     batang schema 전압
-    batang download STROEBL_S1_k01_01 SNL_18650_LFP_25C_0-100_0.5-1C_a [--to DIR] [--columns voltage_v,current_a]
-    batang download selection.json [--to DIR]
-    batang download --filter tasks=aging --filter cathode_family=LCO
+    batang download --grant G-20261029-AB12 [--to DIR] [--jobs 8]
     batang ls
+
+Record files are requested in the hub's 다운로드 tab (https://batanghub.com/#/downloads); `batang download --grant`
+fetches an approved request (into the cache when --to is not given).
 """
 import argparse
 import json
 import os
 import sys
 
-from . import AuthError, BatangError, Selection, connect, validate
+from . import AuthError, BatangError, connect, validate
+from .grants import MOVED, human_size
 
 
 def _kv(pairs):
@@ -29,13 +31,6 @@ def _kv(pairs):
             pass
         out[k] = v
     return out
-
-
-def _size(n):
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1000 or unit == "TB":
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
-        n /= 1000.0
 
 
 def main(argv=None):
@@ -63,13 +58,12 @@ def _main(argv=None):
     f.add_argument("--csv", default=None, help="write every matching record to this CSV")
     s = sub.add_parser("schema")
     s.add_argument("term", nargs="?")
-    d = sub.add_parser("download")
-    d.add_argument("what", nargs="*", help="record ids, or one selection JSON file")
-    d.add_argument("--filter", action="append", help="key=value filters of find (instead of ids)")
-    d.add_argument("--to", default=None)
-    d.add_argument("--columns", default=None, help="comma-separated sample columns to keep")
-    d.add_argument("--files", default=None, help="comma-separated: samples,cycles,segments,meta,samples_preview,"
-                                                   "cell_voltages,temperatures,aux")
+    d = sub.add_parser("download", help="fetch the files of an approved request of the hub's 다운로드 tab")
+    d.add_argument("--grant", default=None, help="the request's grant id (G-yyyymmdd-XXXX)")
+    d.add_argument("--to", default=None, help="folder; files go to <to>/<release>/<dataset>/<id>/ (default: the cache)")
+    d.add_argument("--jobs", type=int, default=8, help="files downloaded at a time")
+    d.add_argument("what", nargs="*", help=argparse.SUPPRESS)                  # record ids of client 0.2
+    d.add_argument("--filter", action="append", help=argparse.SUPPRESS)
     sub.add_parser("ls")
     v = sub.add_parser("validate")
     v.add_argument("path")
@@ -79,6 +73,8 @@ def _main(argv=None):
         r = validate(a.path)
         print(json.dumps(r, ensure_ascii=False, indent=1))
         return 0 if r["ok"] else 1
+    if a.cmd == "download" and not a.grant:
+        raise BatangError("moved", MOVED)
     db = connect(url=a.url, cache=a.cache, login=True)
     if a.cmd == "login":
         db.login()
@@ -105,18 +101,9 @@ def _main(argv=None):
         r = db.schema(a.term)
         print(r.to_string(index=False) if hasattr(r, "to_string") else json.dumps(r, ensure_ascii=False, indent=1))
     elif a.cmd == "download":
-        cols = a.columns.split(",") if a.columns else None
-        files = a.files.split(",") if a.files else None
-        if len(a.what) == 1 and a.what[0].endswith(".json") and os.path.isfile(a.what[0]):
-            paths = Selection.load(a.what[0], db).download(columns=cols, to=a.to, files=files)
-        elif a.what:
-            paths = db.download(a.what, columns=cols, to=a.to, files=files)
-        elif a.filter:
-            paths = db.download(columns=cols, to=a.to, files=files, **_kv(a.filter))
-        else:
-            raise SystemExit("give record ids, a selection JSON or --filter key=value")
-        total = sum(os.path.getsize(p) for p in paths if os.path.isfile(p))
-        print(f"{len(paths)} files, {_size(total)} in {os.path.dirname(os.path.commonpath(paths)) if paths else '-'}")
+        paths = db.fetch_grant(a.grant, to=a.to, jobs=a.jobs)
+        total = sum(os.path.getsize(p) for p in paths)
+        print(f"{len(paths)} files, {human_size(total)} in {os.path.dirname(os.path.commonpath(paths)) if paths else '-'}")
     elif a.cmd == "ls":
         root = os.path.abspath(os.path.expanduser(a.cache))
         if not os.path.isdir(root):
@@ -128,7 +115,7 @@ def _main(argv=None):
                 with open(p, encoding="utf-8") as fh:
                     recs = json.load(fh).get("records", {})
                 n = sum(sum(e.get("files", {}).values()) for e in recs.values())
-                print(f"{rel}: {len(recs)} records, {_size(n)}")
+                print(f"{rel}: {len(recs)} records, {human_size(n)}")
     return 0
 
 

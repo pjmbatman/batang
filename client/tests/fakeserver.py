@@ -1,9 +1,12 @@
-"""A small stand-in for the Batang server (MCP Streamable HTTP + links + device login), for the client tests."""
+"""A small stand-in for the Batang server (MCP Streamable HTTP + links + device login + the /dl routes of approved
+downloads and a bucket behind them), for the client tests."""
 import io
 import json
 import os
+import re
 import secrets
 import threading
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -13,6 +16,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 TOKEN = "btg_test_token"
+OTHER = "btg_other_token"          # a signed-in account that owns no grant
+LICENSES = {"SYN": {"license": "CC-BY-4.0", "commercial_use": "allowed", "cite": "10.0/syn"}}
 
 
 def make_cell(folder, n_cycles=4, per=50, kind="aging"):
@@ -55,6 +60,10 @@ class Fake:
         self.store, self.calls, self.links, self.big_rows = store, [], {}, big_rows
         self.device_polls = 0
         self.rate_limited = 0                 # answer this many file requests with a per-minute 429 first
+        self.grants, self.bucket, self.dl_log = {}, {}, []       # grant id -> state; signed key -> path; redirects
+        self.cut = {}                         # file name -> bytes after which the bucket drops the connection (once)
+        self.bucket_delay, self.active, self.max_active = 0.0, 0, 0
+        self.lock = threading.Lock()
         self.records = [{"id": "SYN_A", "dataset": "SYN", "kind": "cell", "cathode_family": "LFP", "size_code": "18650", "n_cycles": 4, "soh_end": 0.9},
                         {"id": "SYN_B", "dataset": "SYN", "kind": "cell", "cathode_family": "NMC", "size_code": "21700", "n_cycles": 8, "soh_end": 0.8}]
 
@@ -62,6 +71,22 @@ class Fake:
         tok = secrets.token_hex(8)
         self.links[tok] = (path, once)
         return tok
+
+    def grant(self, ids, status="approved", reason=None, per_file=3, files=("samples.parquet", "cycles.parquet", "meta.json"),
+              size_delta=0):
+        """An approved (or pending, rejected ...) download grant of these records; size_delta skews the listed sizes."""
+        gid = "G-20261029-" + "".join(secrets.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567") for _ in range(4))
+        names = {f"SYN/{i}/{f}": os.path.join(self.store, "SYN", i, f) for i in ids for f in files}
+        self.grants[gid] = {"status": status, "reason": reason, "token": secrets.token_urlsafe(16), "files": names,
+                            "left": {n: per_file for n in names}, "per_file": per_file, "size_delta": size_delta}
+        return gid
+
+    def manifest(self, gid, base):
+        g = self.grants[gid]
+        return {"grant": gid, "status": "approved", "expires_at": "2026-11-05T00:00:00+00:00", "per_file_max": g["per_file"],
+                "files": [{"name": n, "size": os.path.getsize(p) + g["size_delta"], "left": g["left"][n],
+                           "url": f"{base}/dl/{gid}/{g['token']}/{n}"} for n, p in g["files"].items()],
+                "licenses": LICENSES, "terms": "Follow each dataset's licence, cite it and Batang; do not redistribute."}
 
     def table_link(self, df):
         buf = io.BytesIO()
@@ -108,14 +133,6 @@ class Fake:
             if "boom" in a["sql"]:
                 raise ToolErr({"error": "rejected", "message": "only one SELECT"})
             return {"rows": 1, "columns": ["n"], "types": ["int64"], "seconds": 0.01, "data": [{"n": 2}]}
-        if name == "download":
-            out = []
-            for i in a.get("ids") or [r["id"] for r in self.records]:
-                for f in ("samples.parquet", "cycles.parquet", "meta.json"):
-                    p = os.path.join(self.store, "SYN", i, f)
-                    out.append({"id": i, "dataset": "SYN", "file": f, "name": f"SYN/{i}/{f}", "size": os.path.getsize(p),
-                                "url": f"{base}/mcp/files/{self.link(p, once=False)}"})
-            return {"links": out, "licenses": {"SYN": {"license": "CC-BY-4.0", "commercial_use": "allowed", "source": "10.0/syn"}}}
         raise ToolErr({"error": "bad_request", "message": f"no tool {name}"})
 
 
@@ -186,7 +203,91 @@ def serve(fake):
             self.end_headers()
             self.wfile.write(body)
 
+        def _send(self, code, body=b"", headers=None):
+            self.send_response(code)
+            for k, v in (headers or {}).items():
+                self.send_header(k, v)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _dl(self, parts):
+            """/dl/<grant>/manifest.json (token), /dl/<grant>/<link token>/urls.txt and .../<dataset>/<id>/<file>."""
+            base = f"http://127.0.0.1:{self.server.server_port}"
+            if not (self.headers.get("User-Agent") or "").startswith("batang-"):   # the CDN refuses urllib's default
+                return self._send(403, b"error code: 1010")
+            g = fake.grants.get(parts[0])
+            if parts[1:] == ["manifest.json"]:
+                who = self.headers.get("Authorization")
+                if who not in ("Bearer " + TOKEN, "Bearer " + OTHER):
+                    return self._json(401, {"error": "invalid_token"})
+                if g is None:
+                    return self._json(404, {"error": "not_found"})
+                if who != "Bearer " + TOKEN:
+                    return self._json(403, {"error": "forbidden"})
+                if g["status"] != "approved":
+                    return self._json(409, {"status": g["status"], "reason": g["reason"] or ""})
+                return self._json(200, fake.manifest(parts[0], base))
+            if g is None or len(parts) < 3 or parts[1] != g["token"]:
+                return self._json(404, {"error": "not_found"})
+            if parts[2:] == ["urls.txt"]:
+                urls = [f["url"] for f in fake.manifest(parts[0], base)["files"]]
+                return self._send(200, ("\n".join(urls) + "\n").encode(), {"Content-Type": "text/plain"})
+            name = "/".join(parts[2:])
+            if g["status"] != "approved":
+                return self._json(410, {"error": g["status"]})
+            if name not in g["files"]:
+                return self._json(404, {"error": "not_in_grant"})
+            rng = self.headers.get("Range")
+            with fake.lock:
+                if not (rng and not rng.startswith("bytes=0-")):        # a resume does not use up a download
+                    if g["left"][name] <= 0:
+                        return self._send(410, "이 파일의 다운로드 횟수를 모두 썼습니다.".encode())
+                    g["left"][name] -= 1
+                fake.dl_log.append((parts[0], name, rng))
+                key = secrets.token_hex(8)
+                fake.bucket[key] = (g["files"][name], name)
+            return self._send(302, b"", {"Location": f"{base}/bucket/{key}/{parts[-1]}"})
+
+        def _bucket(self, key):
+            """A presigned GET: no Authorization header allowed (S3 refuses two kinds of authentication), Range honoured."""
+            if self.headers.get("Authorization"):
+                return self._send(400, b"InvalidArgument: only one auth mechanism allowed")
+            e = fake.bucket.get(key)
+            if e is None:
+                return self._send(403, b"AccessDenied")
+            path, name = e
+            with open(path, "rb") as f:
+                b = f.read()
+            with fake.lock:
+                fake.active += 1
+                fake.max_active = max(fake.max_active, fake.active)
+            try:
+                time.sleep(fake.bucket_delay)
+                start = 0
+                m = re.match(r"bytes=(\d+)-$", self.headers.get("Range") or "")
+                if m:
+                    start = int(m.group(1))
+                    if start >= len(b):
+                        return self._send(416, b"InvalidRange", {"Content-Range": f"bytes */{len(b)}"})
+                cut = fake.cut.pop(name, None)
+                self.send_response(206 if m else 200)
+                if m:
+                    self.send_header("Content-Range", f"bytes {start}-{len(b) - 1}/{len(b)}")
+                self.send_header("Content-Length", str(len(b) - start))
+                self.end_headers()
+                self.wfile.write(b[start:] if cut is None else b[start:start + cut])
+                self.close_connection = True
+            finally:
+                with fake.lock:
+                    fake.active -= 1
+
         def do_GET(self):
+            parts = self.path.split("?")[0].strip("/").split("/")
+            if parts[0] == "dl" and len(parts) >= 3:
+                return self._dl(parts[1:])
+            if parts[0] == "bucket" and len(parts) >= 2:
+                return self._bucket(parts[1])
             if not self._auth():
                 return self._json(401, {"error": "invalid_token"})
             if fake.rate_limited:

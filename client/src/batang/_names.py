@@ -15,13 +15,7 @@ KEY_COLUMN = {"cell": "cycle", "device": "segment"}
 ID_COLUMN = {"cell": "cell_id", "device": "device_id"}
 QUALITY = "quality_flags"
 
-# download(files=...): the 2.0 file kinds, and their 1.x names
-FILE_KINDS = ("samples", "cycles", "segments", "meta", "samples_preview", "cell_voltages", "cell_voltages_preview",
-              "temperatures", "aux")
-LEGACY_FILES = {"timeseries": "samples", "preview": "samples_preview", "cells_v": "cell_voltages",
-                "preview_cells_v": "cell_voltages_preview", "temps": "temperatures"}
-
-# filter arguments of find_records / stats / download
+# filter arguments of find_records / stats
 LEGACY_FILTERS = {"cell_format": "size_code", "unit_level": "level", "domain": "setting", "task": "tasks"}
 # stats(): the record-vs-rows argument is `grain`; 1.x called it `level`
 GRAINS = ("record", "cycle", "segment")
@@ -144,15 +138,3 @@ def filters(args):
         out[k] = v
     return out
 
-
-def files(kinds):
-    if kinds is None:
-        return None
-    out = []
-    for f in ([kinds] if isinstance(kinds, str) else kinds):
-        f = f[:-len(".parquet")] if f.endswith(".parquet") else f[:-len(".json")] if f.endswith(".json") else f
-        if f in LEGACY_FILES:
-            _note(f, LEGACY_FILES[f])
-            f = LEGACY_FILES[f]
-        out.append(f)
-    return out

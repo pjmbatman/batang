@@ -5,15 +5,16 @@
     db.cycles(["STROEBL_S1_k01_01"], kind="aging", columns=["efc", "soh"])
     db.cycle_samples("STROEBL_S1_k01_01", 12, columns=["voltage_v", "current_a"])
     db.query("SELECT cathode_family, count(*) FROM cells GROUP BY 1")
-    sel = db.select(tasks="aging", cathode_family="NMC"); sel.size(); sel.download()
+    db.fetch_grant("G-20261029-AB12")                   # the files of an approved request of the 다운로드 tab
 
-The methods are the tools of the Batang MCP server, with the same names and arguments. What a method reads comes
-from your download cache when it is there (same release), otherwise from the server; df.attrs["source"] says which
-("local", "remote" or "mixed"). Nothing is downloaded unless you call download() or download_catalog().
+The methods are the query tools of the Batang MCP server, with the same names and arguments. What a method reads
+comes from your local copy when it is there (same release), otherwise from the server; df.attrs["source"] says which
+("local", "remote" or "mixed"). Whole record files are not handed out by the tools: they are requested in the hub's
+다운로드 tab, and fetch_grant() downloads an approved request into the cache (batang.grants).
 
 Names are those of schema 2.0 (DATA_FORMAT.md). In release 2.0, 1.x names in arguments (columns, where, metric,
-group_by, filters such as task / cell_format / unit_level / domain, stats(level="cycle"), download file kinds) are
-translated with a FutureWarning, as are the names the server reports it translated ("renamed" in an answer).
+group_by, filters such as task / cell_format / unit_level / domain, stats(level="cycle")) are translated with a
+FutureWarning, as are the names the server reports it translated ("renamed" in an answer).
 """
 import datetime
 import hashlib
@@ -23,27 +24,24 @@ import os
 import sys
 
 import pandas as pd
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 from . import _auth
 from . import _names as N
-from ._names import QUALITY, SAMPLES, TABLE_FILES, TIME_COLUMN
+from . import grants
+from ._names import SAMPLES, TABLE_FILES, TIME_COLUMN
 from ._transport import BatangError, Transport, Unauthorized
 from .local import LocalStore
 
-LARGE = 10 ** 9            # a remote read above this many bytes needs allow_large=True (or download it)
-# sample-file columns a column-cut download always keeps
-CUT_KEEP = ("cycle", "segment", "step", "block", "step_type", "operating_state", "cycle_time_s", "segment_time_s",
-            "test_time_s")
+LARGE = 10 ** 9            # a remote read above this many bytes needs allow_large=True (or a local copy)
 
 
 class SizeError(BatangError):
     """A remote read larger than LARGE bytes without allow_large=True."""
 
     def __init__(self, nbytes, what):
-        super().__init__("too_large", f"{what} is about {nbytes / 1e9:.1f} GB; download() it once and read it locally, "
-                                      "or pass allow_large=True")
+        super().__init__("too_large", f"{what} is about {nbytes / 1e9:.1f} GB; request its files in the hub's 다운로드 tab "
+                                      "and read them locally, or pass allow_large=True")
         self.nbytes = nbytes
 
 
@@ -60,21 +58,6 @@ def _release_key(info):
     u = info.get("device_store") or info.get("unit_store") or {}
     fp = json.dumps([c.get("schema_version"), c.get("totals"), u.get("schema_version"), u.get("totals")], sort_keys=True)
     return f"s{c.get('schema_version', 'x')}-{hashlib.sha1(fp.encode()).hexdigest()[:8]}"
-
-
-def _cut_parquet(src, dest, columns):
-    """Keep only these columns of a Parquet file, with its row groups (one per cycle or segment, for skipping) and its
-    encodings (byte-stream-split floats, dictionary-coded rest), so the cut file is smaller than the original."""
-    f = pq.ParquetFile(src)
-    schema = f.schema_arrow
-    floats = [c for c in columns if pa.types.is_floating(schema.field(c).type)]
-    tmp = dest + ".part"
-    with pq.ParquetWriter(tmp, pa.schema([schema.field(c) for c in columns], metadata=schema.metadata),
-                          compression="zstd", use_dictionary=[c for c in columns if c not in floats],
-                          use_byte_stream_split=floats or False) as w:
-        for g in range(f.num_row_groups):
-            w.write_table(f.read_row_group(g, columns=columns))
-    os.replace(tmp, dest)
 
 
 def _drop_none(d):
@@ -132,6 +115,15 @@ class Client:
         return {"logged_in": ok, "server": self.url, "source": e.get("source"), "token_id": e.get("token_id"),
                 "expires": datetime.datetime.fromtimestamp(float(exp)).isoformat(timespec="minutes") if exp else None}
 
+    def _relogin(self, attempt):
+        """After a refused token: forget it so the next call logs in again (False when that is not possible)."""
+        if attempt or not self._login or (self._token or {}).get("source") == "BATANG_TOKEN":
+            return False
+        _auth.forget(self.auth_url)
+        self._token = None
+        self.t.session_id = None
+        return True
+
     def _call(self, tool, _keep=(), **args):
         if self.offline:
             raise OfflineError(f"{tool}()")
@@ -142,11 +134,8 @@ class Client:
                 N.server_renamed(ans)
                 return ans
             except Unauthorized:
-                if attempt or not self._login or (self._token or {}).get("source") == "BATANG_TOKEN":
+                if not self._relogin(attempt):
                     raise _auth.AuthError("the server did not accept the token: run `batang login`") from None
-                _auth.forget(self.auth_url)
-                self._token = None
-                self.t.session_id = None
 
     def _fetch_table(self, links, fmt="parquet"):
         data = self.t.fetch(links[fmt])
@@ -411,108 +400,24 @@ class Client:
         df.attrs.update(samples_in_window=res.get("samples_in_window"), reduced=res.get("reduced"), source="remote")
         return df
 
-    # ---------------------------------------------------------------- selection and download
+    # ---------------------------------------------------------------- selection, approved downloads
     def select(self, **filters):
-        """The records that match the filters of find_records, as a Selection (nothing is downloaded)."""
+        """The records that match the filters of find_records, as a Selection (ids to keep, compare or request)."""
         df = self.find_records(**filters)
         return Selection(self, list(df["id"]), filters=filters, release=self.release, records=df)
 
-    def _download_links(self, ids=None, files=None, **filters):
-        ans = self._call("download", ids=ids, files=N.files(files), **N.filters(filters))
-        self._licenses = ans.get("licenses") or {}
-        return ans.get("links", [])
-
-    def _note_licenses(self, root):
-        """Keep the licences of what was downloaded in <root>/LICENSES.json and say once per dataset what they are."""
-        lic = getattr(self, "_licenses", None) or {}
-        if not lic:
-            return
-        p = os.path.join(root, "LICENSES.json")
+    def fetch_grant(self, grant, to=None, jobs=8):
+        """Download the files of an approved request of the hub's 다운로드 tab (its grant id, G-yyyymmdd-XXXX) into
+        <to or the cache>/<release>/<dataset>/<id>/, `jobs` files at a time. Files already there with their size are
+        skipped and interrupted ones resumed; the datasets' licences are kept in LICENSES.json. Returns the paths."""
         try:
-            with open(p, encoding="utf-8") as f:
-                known = json.load(f)
-        except (OSError, ValueError):
-            known = {}
-        new = {d: v for d, v in lic.items() if d not in known}
-        known.update(lic)
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(known, f, indent=1, ensure_ascii=False)
-        for d, v in sorted(new.items()):
-            use = {"allowed": "commercial use allowed", "not_allowed": "NO commercial use", "unclear": "commercial use unclear: ask the owner"}
-            print(f"batang: {d}: {v.get('license') or 'licence not stated'} ({use.get(v.get('commercial_use'), 'see the source')}); "
-                  f"cite {v.get('source') or 'the original source'}" + (f" ({v['note']})" if v.get("note") else ""), file=sys.stderr)
-        if new:
-            print(f"batang: follow each dataset's licence, cite it and Batang, do not redistribute; list in {p}", file=sys.stderr)
+            return grants.fetch(self, grant, to or self.cache, jobs=jobs)
+        finally:
+            self._local = None
 
-    def download(self, selection=None, columns=None, to=None, files=None, **filters):
-        """Download the files of a Selection, a list of ids or the records matching filters, into the cache (or `to`).
-        Files already there with the right size are skipped. files: samples, cycles (cells) / segments (devices), meta,
-        samples_preview, cell_voltages, temperatures, aux (default: samples, cycles or segments, meta). columns: keep
-        only these sample columns in the stored samples files (the whole file is transferred, then cut; the cycle or
-        segment, step, block and time columns and quality_flags are always kept). Returns the local paths."""
-        if isinstance(selection, Selection):
-            ids = selection.ids
-        elif isinstance(selection, str):
-            ids = [selection]
-        elif selection is not None:
-            ids = list(selection)
-        else:
-            ids = None
-        if files is not None:
-            files = [files] if isinstance(files, str) else list(files)
-        if columns is not None:
-            columns = N.columns([columns] if isinstance(columns, str) else columns)
-        links = self._download_links(ids=ids, files=files, **filters)
-        root = os.path.abspath(os.path.expanduser(to)) if to else os.path.join(self.cache, self.release)
-        idx_path = os.path.join(root, "index.json")
-        try:
-            with open(idx_path, encoding="utf-8") as f:
-                idx = json.load(f)
-        except (OSError, ValueError):
-            idx = {"release": self.release, "server": self.url, "records": {}}
-        recs = idx.setdefault("records", {})
-        paths = []
-        for ln in links:
-            dest = os.path.join(root, ln["name"])
-            e = recs.setdefault(ln["id"], {"dataset": ln["dataset"], "kind": None, "files": {}, "columns": {}})
-            if ln["file"] == "segments.parquet":
-                e["kind"] = "device"
-            elif ln["file"] == "cycles.parquet":
-                e["kind"] = "cell"
-            cut = columns is not None and ln["file"] == SAMPLES
-            if cut:
-                have = e.get("columns", {}).get(ln["file"])
-                if have is not None and os.path.isfile(dest) and all(c in have for c in columns):
-                    paths.append(dest)
-                    continue
-                tmp = self.t.fetch(ln["url"], dest + ".full", expected_size=ln["size"])
-                names = pq.read_schema(tmp).names
-                keep = [c for c in dict.fromkeys(list(CUT_KEEP) + list(columns) + [QUALITY]) if c in names]
-                _cut_parquet(tmp, dest, keep)
-                os.remove(tmp)
-                e.setdefault("columns", {})[ln["file"]] = keep
-            else:
-                self.t.fetch(ln["url"], dest, expected_size=ln["size"])
-                e.setdefault("columns", {}).pop(ln["file"], None)
-            e["files"][ln["file"]] = os.path.getsize(dest)
-            paths.append(dest)
-        for rid, e in recs.items():
-            if e.get("kind") is None:
-                d = self.describe(rid)
-                e["kind"] = "cell" if d.get("kind") == "cell" else "device"
-        os.makedirs(root, exist_ok=True)
-        with open(idx_path, "w", encoding="utf-8") as f:
-            json.dump(idx, f, indent=1)
-        self._note_licenses(root)
-        sel_dir = os.path.join(root, "selections")
-        os.makedirs(sel_dir, exist_ok=True)
-        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(os.path.join(sel_dir, f"download-{stamp}.json"), "w", encoding="utf-8") as f:
-            json.dump({"release": self.release, "server": self.url, "ids": sorted({ln["id"] for ln in links}),
-                       "filters": filters or None, "columns": columns,
-                       "files": [{"name": ln["name"], "size": ln["size"]} for ln in links]}, f, indent=1)
-        self._local = None
-        return paths
+    def download(self, *args, **kwargs):
+        """Removed: record files come from the hub's 다운로드 tab (request, approval, then fetch_grant())."""
+        raise BatangError("moved", grants.MOVED)
 
     def download_catalog(self):
         """Store the record catalog of this release in the cache (for find_records() offline). Returns its path."""
@@ -534,7 +439,7 @@ class Client:
 
 
 class Selection:
-    """A set of records: what to download or read together. Save it to reproduce a data set later."""
+    """A set of records: what to read or compare together. Save it to reproduce a data set later."""
 
     def __init__(self, client, ids, filters=None, release=None, records=None):
         self.client, self.ids, self.filters, self.release, self.records = client, list(ids), filters or {}, release, records
@@ -544,11 +449,6 @@ class Selection:
 
     def __repr__(self):
         return f"<Selection {len(self.ids)} records, release {self.release}>"
-
-    def size(self, files=None):
-        """Bytes the download would transfer (asks the server for the file list; nothing is transferred)."""
-        links = self.client._download_links(ids=self.ids, files=files)
-        return sum(ln["size"] for ln in links)
 
     def save(self, path):
         with open(os.path.expanduser(path), "w", encoding="utf-8") as f:
@@ -564,5 +464,9 @@ class Selection:
             raise BatangError("release", f"the selection is from release {j['release']}, the client uses {client.release}")
         return cls(client, j["ids"], filters=j.get("filters"), release=j.get("release"))
 
-    def download(self, columns=None, to=None, files=None):
-        return self.client.download(self, columns=columns, to=to, files=files)
+    def download(self, *args, **kwargs):
+        """Removed: request the records' files in the hub's 다운로드 tab, then fetch_grant() the approved request."""
+        raise BatangError("moved", grants.MOVED)
+
+    def size(self, *args, **kwargs):
+        raise BatangError("moved", grants.MOVED)

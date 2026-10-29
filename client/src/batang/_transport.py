@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 
 PROTOCOL_VERSION = "2025-06-18"
+UA = "batang-python"          # urllib's own User-Agent is refused by the site's CDN (Cloudflare 1010)
 
 
 class BatangError(Exception):
@@ -69,7 +70,7 @@ class Transport:
 
     def _headers(self, extra=None):
         h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
-             "Authorization": "Bearer " + self.token(), "User-Agent": "batang-python"}
+             "Authorization": "Bearer " + self.token(), "User-Agent": UA}
         if self.session_id:
             h["Mcp-Session-Id"] = self.session_id
             h["MCP-Protocol-Version"] = PROTOCOL_VERSION
@@ -117,7 +118,7 @@ class Transport:
     def _initialize(self):
         self._post({"jsonrpc": "2.0", "id": next(self._ids), "method": "initialize",
                     "params": {"protocolVersion": PROTOCOL_VERSION, "capabilities": {},
-                               "clientInfo": {"name": "batang-python", "version": "0.2.1"}}})
+                               "clientInfo": {"name": "batang-python", "version": "0.3.0"}}})
         self._post({"jsonrpc": "2.0", "method": "notifications/initialized"})
 
     def request(self, method, params):
@@ -159,7 +160,7 @@ class Transport:
             return dest
         try:
             r = self._urlopen(lambda: urllib.request.Request(url, headers={"Authorization": "Bearer " + self.token(),
-                                                                             "User-Agent": "batang-python"}))
+                                                                             "User-Agent": UA}))
         except urllib.error.HTTPError as e:
             if e.code == 401:
                 raise Unauthorized(e.read().decode("utf-8", "replace")[:300]) from None
