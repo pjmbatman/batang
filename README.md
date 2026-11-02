@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
-    <img src="docs/assets/hero-light.png" alt="Batang — the foundation for every battery experiment, model and insight. The ㅂ mark in 2.5D, with 바탕이, the research assistant, sitting on it" width="100%">
+    <img src="docs/assets/hero-light.png" alt="ba·tang (바탕), noun: 1. the ground that everything else rests on; a foundation. 2. an open hub for battery research. Beside it, the ㅂ mark in 2.5D with 바탕이, the research assistant, sitting on it" width="100%">
   </picture>
 </p>
 
