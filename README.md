@@ -1,14 +1,11 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/batang-mark-dark.svg">
-    <img src="docs/assets/batang-mark.svg" alt="Batang logo" width="96">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
+    <img src="docs/assets/hero-light.png" alt="Batang: the foundation for every battery experiment, model and insight. The ㅂ mark, with 바탕이, the research assistant, standing on it" width="100%">
   </picture>
 </p>
 
-<h1 align="center">Batang</h1>
-
 <p align="center">
-  <b>The foundation for every battery experiment, model and insight.</b><br>
   <i>Batang</i> (바탕) means foundation in Korean. An open hub for battery research: public cycling and fault data
   standardized into one schema, physics-based cell simulation and AI modeling, from the web, Python or an AI
   assistant.
@@ -46,7 +43,7 @@ you simulate cells with physics-based models and build, train and evaluate AI mo
 | | device store: 11 datasets of packs, storage systems, vehicles and fault tests · 1,513 devices and 31,449 charging sessions · 436 k segments · 336 M samples, with fault labels (normal / faulty / unknown) |
 | **Hub** | the Batang web site: an overview dashboard, datasets to explore and filter, cell and device pages with cycle summaries and raw voltage / current / temperature, cell comparison, the data model, release notes |
 | **Virtual Lab** | in the hub: **simulation** with PyBaMM (SPM, SPMe, DFN; cell parameter sets, experiment protocols built from steps, voltage and internal state variables) and **AI modeling** (pick records and preprocess them, build a model from blocks, train it on a GPU and watch it learn, evaluate a checkpoint on other data; the choices become PyTorch and NumPy code you can download) |
-| **Research assistant** | 바탕이, a chat in the hub that finds data, explains it and opens the right screen (a cell, a comparison, a simulation filled in for you to run); each conversation is private to the person |
+| **Research assistant** | 바탕이, a chat in the hub that finds data, explains it, draws SOH trajectories in the chat and opens the right screen (a dataset filtered, a cell, a simulation or a training set up for you to run), or offers it as a button; each conversation is private to the person |
 | **My data** | upload your own cycler files; they are converted into the same schema and can be explored and compared with the public cells, visible to you alone |
 | **AI assistants** | a remote MCP server: an assistant such as Claude searches, aggregates and reads the data for you, read-only |
 | **Downloads** | the standardized files themselves (Apache Parquet), for your own analysis or model training: requested in the hub's 다운로드 tab and fetched once the request is approved |
