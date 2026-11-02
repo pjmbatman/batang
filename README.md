@@ -1,11 +1,12 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.png">
-    <img src="docs/assets/hero-light.png" alt="Batang: the foundation for every battery experiment, model and insight. The ㅂ mark, with 바탕이, the research assistant, standing on it" width="100%">
+    <img src="docs/assets/hero-light.png" alt="Batang: the ㅂ mark in 2.5D, with 바탕이, the research assistant, sitting on it" width="100%">
   </picture>
 </p>
 
 <p align="center">
+  <b>The foundation for every battery experiment, model and insight.</b><br>
   <i>Batang</i> (바탕) means foundation in Korean. An open hub for battery research: public cycling and fault data
   standardized into one schema, physics-based cell simulation and AI modeling, from the web, Python or an AI
   assistant.
