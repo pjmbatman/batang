@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: >-
+  If you use Batang, please cite it as below, and also cite the original
+  datasets you use (see DATASETS.md).
+title: "Batang: an open hub for battery data, simulation and AI modeling"
+abstract: >-
+  Batang (바탕, "foundation" in Korean): the foundation for every battery
+  experiment, model and insight. An open hub for battery research that
+  standardizes public cycling and fault datasets record by record into one
+  Parquet schema (unified units, cycle segmentation, cycle kinds, a single SOH
+  definition), and builds on it physics-based cell simulation (PyBaMM) and AI
+  modeling (data preprocessing, block-built models, GPU training and
+  evaluation), offered through a web hub, a Python package and a remote MCP
+  server.
+type: software
+authors:
+  - family-names: Park
+    given-names: Jimin
+    affiliation: "Department of Battery Conflation Engineering, Yonsei University"
+    email: pjm@yonsei.ac.kr
+url: "https://batanghub.com"
+repository: "https://github.com/pjmbatman/batang"
+version: "2.0"
+date-released: "2026-10-23"
+keywords:
+  - lithium-ion battery
+  - battery degradation
+  - state of health
+  - dataset standardization
+  - battery simulation
+  - machine learning
